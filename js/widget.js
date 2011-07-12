@@ -34,21 +34,22 @@ Widget = function(p, x, y, w, h, c) {
 
   this.bounds = new Rect(x, y, w, h);
   this.bgcolour = "rgba(128, 128, 128, 0.5)";
+  this.bgimage = new Image();
   this.children = [];
-  this.par = null;
   this.visible = true;
   this.root = 1;  // root widget
 
   this.visible_transition = 0;
-  this.visible_transition_frames = 30;
+  this.visible_transition_frames = 10;
   this.visible_transition_index = 0;
   this.visible_transition_delta_x = 0;
   this.visible_transition_delta_y = 0;
+  this.visible_transition_bounds = new Rect();
+  this.visible_transition_end_state = 0;
 
   // add to parent object if appropriate
   if( p instanceof Widget )
   {
-    this.par = p;
     p.addChild(this);
   }
   else if ( p == null )
@@ -74,11 +75,13 @@ Widget.prototype.hide = function()
   this.visible_transition = 1;
   this.visible_transition_index = 0;
   this.visible_transition_delta_x = -(this.bounds.x2 / this.visible_transition_frames);
+  this.visible_transition_bounds.setRect(this.bounds);
+  this.visible_transition_end_state = 0;
 }
 
 Widget.prototype.show = function()
 {
-
+  this.dirty = true;
 }
 
 Widget.prototype.setBackgroundImage = function(path)
@@ -89,6 +92,39 @@ Widget.prototype.setBackgroundImage = function(path)
 Widget.prototype.setBackgroundColour = function(colour)
 {
   this.bgcolour = colour;
+}
+
+Widget.prototype.is_dirty = function()
+{
+  if( ! this.visible )
+    return;
+
+  var is_dirty = this.dirty;
+
+  for( c in this.children )
+    is_dirty |= this.children[c].is_dirty();
+
+  return is_dirty;
+}
+
+Widget.prototype.process = function()
+{
+  if( ! this.visible )
+    return;
+
+
+  if ( this.visible_transition )
+  {
+    this.visible_transition_index++;
+
+//    if( this.visible_transition_index >= this.visible_transition_frames )
+  //    this.visible_transition = 0;
+
+    this.dirty = true;
+  }
+
+  for( c in this.children )
+    this.children[c].process();
 }
 
 Widget.prototype.render = function(context, x, y)
@@ -105,12 +141,15 @@ Widget.prototype.render = function(context, x, y)
   // all children objects are draw relative to parent
   if ( this.visible_transition )
   {
-    this.visible_transition_index++;
+//    this.visible_transition_index++;
 
     context.translate(x + (this.visible_transition_index * this.visible_transition_delta_x), y + (this.visible_transition_index * this.visible_transition_delta_y));
 
     if( this.visible_transition_index >= this.visible_transition_frames )
+    {
       this.visible_transition = 0;
+      this.visible = this.visibile_transition_end_state;
+    }
   }
   else
     context.translate(x, y);
@@ -121,21 +160,22 @@ Widget.prototype.render = function(context, x, y)
   context.clip();
   context.closePath();
 
-  context.fillStyle = this.bgcolour;
-  context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+  if( this.bgimage.src != "" && this.bgimage.complete )
+  //if( 0 )
+  {
+    context.drawImage(this.bgimage, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.y);
+  }
+  else
+  {
+    context.fillStyle = this.bgcolour;
+    context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+  }
 
-  var transition = this.visible_transition;
-
-  for (c in this.children)
-    transition += this.children[c].render(context, this.bounds.x, this.bounds.y);
+  for( c in this.children )
+    this.children[c].render(context, this.bounds.x, this.bounds.y);
 
   context.restore();
 
-  if ( this.root && transition )
-  {
-    alert('woot');
-  }
-
-  return transition;
+  this.dirty = false;
 }
 

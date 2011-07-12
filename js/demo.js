@@ -21,5 +21,20 @@ function demo()
 
   b1.hide();
 
-  while( w.render( context, 0, 0 ) ) {}
+  draw();
+}
+
+function draw()
+{
+  var context = $("#gui")[0].getContext("2d");
+
+  w.process();
+
+  if ( w.is_dirty() )
+  {
+    w.render(context, 0, 0);
+  }
+
+  // setup the render loop
+  setTimeout(function() { draw(); }, 100);
 }
