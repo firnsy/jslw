@@ -4,7 +4,5 @@ body {
 }
 
 canvas {
-  width: 800px;
-  height: 480px;
   border: 1px dashed #444;
 }
