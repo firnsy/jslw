@@ -18,7 +18,8 @@ function demo_run()
 
   b1 = new Widget(w, 100, 100, 100, 100);
   b1.set_background_colour('rgb(0, 128, 0)');
-  b1.setVisibility(1);
+  b1.set_visibility(1);
+  b1.set_label("hi");
 
   b11 = new Widget(b1, 55, 20, 20, 20);
   b11.set_background_colour('#000077');

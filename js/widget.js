@@ -85,7 +85,11 @@ Widget = function(p, x, y, w, h, c) {
   this.parent = p;
   this.root = false;
   this.id = 0;
-  this.label = "";
+
+  this.label = "11";
+  this.label_font = '10px sans-serif';
+  this.label_style = '#000000';
+  this.label_alignment = "left";
 
   this.children = [];
   this.visible = true;
@@ -180,7 +184,7 @@ Widget.prototype.add_child = function(child)
 
 // VISIBILITY AND TRANSITION/ANIMATION
 
-Widget.prototype.setVisibility = function(state)
+Widget.prototype.set_visibility = function(state)
 {
   this.visible = state;
 }
@@ -258,6 +262,26 @@ Widget.prototype.slideDown = function()
 
 
 // STYLING
+
+Widget.prototype.set_label_alignment = function(type)
+{
+  switch(type)
+  {
+    case "center":
+    case "left":
+    case "right":
+      this.label_alignment = text;
+      break;
+    default:
+      this.label_alignment = "left";
+  }
+}
+
+Widget.prototype.set_label = function(text)
+{
+  this.label = text;
+}
+
 
 Widget.prototype.set_background_image = function(path)
 {
@@ -404,6 +428,9 @@ Widget.prototype.render = function(context, x, y)
     context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 
+  if ( this.label != "" )
+    this.render_label(context);
+
   for( c in this.children )
     this.children[c].render(context, this.bounds.x, this.bounds.y);
 
@@ -412,25 +439,26 @@ Widget.prototype.render = function(context, x, y)
   this.dirty = false;
 }
 
-Widget.prototype.render_label = function(context, x, y)
+Widget.prototype.render_label = function(context)
 {
-  context.fillText("woot", 5, 5);
+  var x = 0;
+  var y = 0;
+
+  context.font = this.label_font;
+  var tb = context.measureText(this.label);
+
+  switch (this.label_alignment)
+  {
+    case "center":
+      x = (bounds.width - tb.width) / 2;
+      break;
+    case "right":
+      x = (bounds.width - tb.width);
+      break;
+  }
+
+  context.fillText(this.label, x, y);
 }
-
-Widget.prototype.debug_print = function(context)
-{
-  if( ! ( context instanceof CanvasRenderingContext2D ) )
-    return;
-
-  //
-  context.save();
-
-  context.font = '10px sans-serif';
-  context.fillText("woot", 10, 10);
-
-  context.restore();
-}
-
 
 Widget.prototype.loop_start = function()
 {
@@ -452,7 +480,6 @@ Widget.prototype.update = function()
     this.context.save();
 
     w.render(this.context, 0, 0);
-    w.debug_print();
 
     this.context.restore();
   }
