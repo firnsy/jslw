@@ -74,39 +74,49 @@ Rect.prototype.vectorIntersects= function(v)
 
 // implementation
 
+// INITIALISATION
 Widget = function(p, x, y, w, h, c) {
 
   this.bounds = new Rect(x, y, w, h);
   this.offset = new Vector2(0, 0);
   this.bgcolour = "rgba(128, 128, 128, 0.5)";
   this.bgimage = new Image();
+
   this.parent = p;
   this.root = false;
+  this.id = 0;
+  this.label = "";
+
   this.children = [];
   this.visible = true;
 
-  this.animate = 0;
+  this.animate = false;
   this.animate_frames = 50;
 
-  // rendering members
-  this.updating = false;
-  this.context = null;
+  // callbacks
+  this.cb = {
+    "mouse_down": function() {},
+    "mouse_move": function() {},
+    "mouse_click": function() {}
+  };
 
+
+  // rendering members
+  this.looping = false;
+  this.canvas = null;
+  this.context = null;
 
   // add to parent object if appropriate
   if( p instanceof Widget )
-  {
     p.add_child(this);
-  }
 
-  this.dirty = true;
+  this.make_dirty();
 }
 
 Widget.prototype.set_root = function()
 {
   // handles all
   this.root = true;
-
 }
 
 Widget.prototype.is_root = function()
@@ -116,19 +126,59 @@ Widget.prototype.is_root = function()
 
 Widget.prototype.get_root = function()
 {
-  if ( this.parent == null )
+  if ( this.root )
     return this;
 
   return this.parent.get_root();
 }
 
+Widget.prototype.set_canvas = function(canvas)
+{
+  if( ! ( canvas instanceof HTMLCanvasElement ) )
+  {
+    alert("You have not supplied a canvas element.");
+    return;
+  }
+
+  context = canvas.getContext("2d");
+
+  // store for later
+  this.canvas = canvas;
+  this.context = context;
+
+  var this_object = this;
+
+  // apply our handling routines
+  canvas.addEventListener("mousedown", function(e){ this_object.mouse_listener(e, this_object, "mouse_down") }, false);
+  canvas.addEventListener("mouseup", function(e){ this_object.mouse_listener(e, this_object, "mouse_up") }, false);
+//  canvas.addEventListener("mousemove", function(e){ this_object.mouse_listener(e, this_object, "mouse_move") }, false);
+}
+
+Widget.prototype.add_event_listener = function(a, cb)
+{
+  switch(a)
+  {
+    case "mouse_down":
+    case "mouse_up":
+    case "mouse_move":
+      this.cb[a] = cb;
+      break;
+    default:
+      alert("Unknown event type supplied: " + a);
+  }
+}
 
 Widget.prototype.add_child = function(child)
 {
   this.children.push(child);
+
+  // TODO: add a single dimension array to the root node
+  // storing every child with an ID
+  // this will potentially allow for unique tracking to simplify click
+  // events
 }
 
-// VISIBILITY AND TRANSITION
+// VISIBILITY AND TRANSITION/ANIMATION
 
 Widget.prototype.setVisibility = function(state)
 {
@@ -138,14 +188,11 @@ Widget.prototype.setVisibility = function(state)
 Widget.prototype.hide = function()
 {
   this.visible = false;
-  this.dirty = true;
-  this.animate = 1;
+  this.animate = true;
   this.animate_index = this.animate_frames - 1;
   this.animate_end_state = 0;
-//  this.slideLeft();
-//  this.slideRight();
-//  this.slideUp();
-//  this.slideDown();
+
+  this.make_dirty();
 }
 
 Widget.prototype.show = function()
@@ -158,7 +205,7 @@ Widget.prototype.show = function()
 
 Widget.prototype.slideLeft = function()
 {
-  this.animate = 1;
+  this.animate = true;
   this.animate_index = 0;
   this.animate_delta_v = new Vector2(
     -(this.bounds.x2 / this.animate_frames),
@@ -171,7 +218,7 @@ Widget.prototype.slideLeft = function()
 
 Widget.prototype.slideRight = function()
 {
-  this.animate = 1;
+  this.animate = true;
   this.animate_index = 0;
   this.animate_delta_v = new Vector2(
     (this.parent.bounds.w - this.bounds.x) / this.animate_frames,
@@ -185,7 +232,7 @@ Widget.prototype.slideRight = function()
 
 Widget.prototype.slideUp = function()
 {
-  this.animate = 1;
+  this.animate = true;
   this.animate_index = 0;
   this.animate_delta_v = new Vector2(
     0,
@@ -198,7 +245,7 @@ Widget.prototype.slideUp = function()
 
 Widget.prototype.slideDown = function()
 {
-  this.animate = 1;
+  this.animate = true;
   this.animate_index = 0;
   this.animate_delta_v = new Vector2(
     0,
@@ -210,10 +257,6 @@ Widget.prototype.slideDown = function()
 }
 
 
-
-
-
-
 // STYLING
 
 Widget.prototype.set_background_image = function(path)
@@ -222,7 +265,7 @@ Widget.prototype.set_background_image = function(path)
   this.bgimage.onerror = function(){ alert("Unable to load image: " + this.src); };
 
   var this_object = this;
-  this.bgimage.onload = function() { this_object.dirty = true; };
+  this.bgimage.onload = function() { this_object.make_dirty(); };
 }
 
 Widget.prototype.set_background_colour = function(colour)
@@ -230,29 +273,58 @@ Widget.prototype.set_background_colour = function(colour)
   this.bgcolour = colour;
 }
 
+
+// INPUT PROCESSING
+Widget.prototype.mouse_listener = function(e, o, a)
+{
+  x = e.pageX - o.canvas.offsetLeft;
+  y = e.pageY - o.canvas.offsetLeft;
+  console.log("action: " + a + " x:" + x + " y:" + y);
+
+  o.mouse_process(x, y, a);
+}
+
+Widget.prototype.mouse_process = function(x, y, a)
+{
+  var handled = false;
+
+  // ignore invisible and animating widgets
+  if( ! this.visible || this.animate )
+    return handled;
+
+  // children need to operate on relative point to current
+  var cx = x - this.bounds.x;
+  var cy = y - this.bounds.y;
+
+  for( c in this.children )
+    handled |= this.children[c].mouse_process(cx, cy, a);
+
+  if ( ! handled && this.bounds.pointIntersects(x,y) )
+  {
+    // do call back
+    if ( this.cb[a] )
+      handled = this.cb[a](x, y);
+    else
+      console.log("No callback supplied.");
+    handled = true;
+  }
+
+  return handled;
+}
+
+
 // PROCESS AND RENDERING
 
 Widget.prototype.make_dirty = function()
 {
   this.dirty = true;
 
-  this.get_root().update();
+//  this.get_root().update();
 }
 
 Widget.prototype.make_clean = function()
 {
   this.dirty = false;
-}
-
-Widget.prototype.set_context = function(context)
-{
-  if( ! ( context instanceof CanvasRenderingContext2D ) )
-  {
-    alert("You have not supplied the correct context.");
-    return;
-  }
-
-  this.context = context;
 }
 
 Widget.prototype.is_dirty = function()
@@ -283,7 +355,7 @@ Widget.prototype.process = function()
     if( this.animate_index > this.animate_frames )
     {
       this.visible = this.animate_end_state;
-      this.animate = 0;
+      this.animate = false;
     }
 
     this.dirty = true;
@@ -340,30 +412,52 @@ Widget.prototype.render = function(context, x, y)
   this.dirty = false;
 }
 
+Widget.prototype.render_label = function(context, x, y)
+{
+  context.fillText("woot", 5, 5);
+}
+
+Widget.prototype.debug_print = function(context)
+{
+  if( ! ( context instanceof CanvasRenderingContext2D ) )
+    return;
+
+  //
+  context.save();
+
+  context.font = '10px sans-serif';
+  context.fillText("woot", 10, 10);
+
+  context.restore();
+}
+
+
+Widget.prototype.loop_start = function()
+{
+  this.looping = true;
+  this.update();
+}
+
+Widget.prototype.loop_stop = function()
+{
+  this.looping = false;
+}
+
 Widget.prototype.update = function()
 {
-  if ( this.updating || ! this.is_root() )
-  {
-    alert("I'm working.");
-    return;
-  }
-
-  this.updating = true;
-
   var is_dirty = this.process();
-
 
   if ( is_dirty )
   {
     this.context.save();
 
     w.render(this.context, 0, 0);
+    w.debug_print();
 
     this.context.restore();
-
-    // setup the render loop
-    setTimeout( ( function(scope) { return function() { scope.update(); }; } )(this), 200);
   }
 
-  this.updating = false;
+  // reschedule if we're looping
+  if ( this.looping )
+    setTimeout( ( function(scope) { return function() { scope.update(); }; } )(this), 20);
 }
