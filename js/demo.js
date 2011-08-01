@@ -16,20 +16,24 @@ function demo_run()
   w.set_canvas( $("#gui")[0] );
 // w.set_background_colour('rgb(128, 0, 0)');
 
-  b1 = new Widget(w, 100, 100, 100, 100);
+  b1 = new Widget(w, 500, 350, 120, 120);
   b1.set_background_colour('rgb(0, 128, 0)');
   b1.set_visibility(1);
-  b1.set_label("hi");
+  b1.set_label("hippee");
+  b1.set_label_alignment("right");
+  b1.add_event_listener("mouse_up", function(){ b1.slide("up"); return true; });
 
   b11 = new Widget(b1, 55, 20, 20, 20);
   b11.set_background_colour('#000077');
-  b11.add_event_listener("mouse_up", function(){ b11.slideLeft(); return true; });
+  b11.set_label("hi");
+  b11.add_event_listener("mouse_up", function(){ b11.slide("left"); return true; });
 
   b2 = new Widget(w, 250, 10, 10, 100);
   b2.set_background_colour('#007f7f');
 
-  t1 = new Widget(w, 304, 429, 48, 51)
-  t1.set_background_image('images/rewind_up.png');
+  t1 = new Button(w, 304, 429, 48, 51)
+  t1.set_background_image_up('images/rewind_up.png');
+  t1.set_background_image_down('images/rewind_down.png');
 
   t2 = new Widget(w, 352, 429, 48, 51)
   t2.set_background_image('images/play_up.png');
@@ -42,7 +46,7 @@ function demo_run()
 
   w.loop_start();
 
-  setTimeout(function() { b2.slideRight() } , 2000);
+  setTimeout(function() { b2.slide("right", 200) } , 2000);
 //  setTimeout(function() { b11.slideLeft() } , 2500);
 //  setTimeout(function() { b1.slideDown() } , 2750);
 }

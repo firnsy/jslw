@@ -1,109 +1,38 @@
-Vector2 = function(x, y)
-{
-  this.set(x, y);
-}
-
-Vector2.prototype.set = function(x, y)
-{
-  this.x = x + 0;
-  this.y = y + 0;
-}
-
-Vector2.prototype.shiftX = function(x)
-{
-  this.x += x;
-}
-
-Vector2.prototype.shiftY = function(y)
-{
-  this.y += y;
-}
-
-Vector2.prototype.translate = function(v)
-{
-  this.x += v.x;
-  this.y += v.y;
-}
-
-Vector2.prototype.scale = function(s)
-{
-  this.x *= s;
-  this.y *= s;
-}
-
-
-// rectangle object description
-Rect = function(x, y, w, h)
-{
-  this.x = x + 0;       // x coordinate for top-left
-  this.y = y + 0;       // y coordinate for top-left
-  this.w = w + 0;
-  this.h = h + 0;
-  this.x2 = x + w;  // x coordinate for bottom-right
-  this.y2 = y + h;  // y coordinate for bottom-right
-}
-
-Rect.prototype.setRect = function(r)
-{
-  this.x = r.x;
-  this.y = r.y;
-  this.w = r.w;
-  this.h = r.h;
-  this.x2 = r.x2;
-  this.y2 = r.y2;
-}
-
-Rect.prototype.offset = function(x, y)
-{
-  this.x += x + 0;
-  this.y += y + 0;
-  this.x2 += x + 0;
-  this.y2 += y + 0;
-}
-
-Rect.prototype.pointIntersects = function(x, y)
-{
-  return ( x >= this.x && x <= this.x2 &&
-           y >= this.y && y <= this.y2 );
-}
-
-Rect.prototype.vectorIntersects= function(v)
-{
-  this.pointIntersects(v.x, v.y);
-}
-
-// implementation
-
 // INITIALISATION
-Widget = function(p, x, y, w, h, c) {
+Widget = function(p, x, y, w, h, c)
+{
 
   this.bounds = new Rect(x, y, w, h);
   this.offset = new Vector2(0, 0);
-  this.bgcolour = "rgba(128, 128, 128, 0.5)";
-  this.bgimage = new Image();
+  this.bgcolour = '';
+  this.background_image = null;
 
   this.parent = p;
   this.root = false;
   this.id = 0;
 
-  this.label = "11";
-  this.label_font = '10px sans-serif';
+  this.label = '';
+  this.label_font = '12px sans-serif';
   this.label_style = '#000000';
-  this.label_alignment = "left";
+  this.label_alignment_horizontal = 'left';
+  this.label_alignment_vertical = 'middle';
 
   this.children = [];
   this.visible = true;
 
   this.animate = false;
-  this.animate_frames = 50;
+  this.animate_frames = 0;
+  this.animate_function = null;
+
+  this.alpha = 1.0;
+
+  this.clip = true;
 
   // callbacks
-  this.cb = {
-    "mouse_down": function() {},
-    "mouse_move": function() {},
-    "mouse_click": function() {}
-  };
+  this.cb = {};
 
+  // event state
+  this.is_pressed = false;
 
   // rendering members
   this.looping = false;
@@ -130,7 +59,7 @@ Widget.prototype.is_root = function()
 
 Widget.prototype.get_root = function()
 {
-  if ( this.root )
+  if( this.root )
     return this;
 
   return this.parent.get_root();
@@ -160,11 +89,12 @@ Widget.prototype.set_canvas = function(canvas)
 
 Widget.prototype.add_event_listener = function(a, cb)
 {
-  switch(a)
+  switch( a )
   {
     case "mouse_down":
     case "mouse_up":
     case "mouse_move":
+    case "mouse_click":
       this.cb[a] = cb;
       break;
     default:
@@ -174,12 +104,8 @@ Widget.prototype.add_event_listener = function(a, cb)
 
 Widget.prototype.add_child = function(child)
 {
+  // add child to list of children
   this.children.push(child);
-
-  // TODO: add a single dimension array to the root node
-  // storing every child with an ID
-  // this will potentially allow for unique tracking to simplify click
-  // events
 }
 
 // VISIBILITY AND TRANSITION/ANIMATION
@@ -192,10 +118,6 @@ Widget.prototype.set_visibility = function(state)
 Widget.prototype.hide = function()
 {
   this.visible = false;
-  this.animate = true;
-  this.animate_index = this.animate_frames - 1;
-  this.animate_end_state = 0;
-
   this.make_dirty();
 }
 
@@ -207,73 +129,280 @@ Widget.prototype.show = function()
   this.make_dirty();
 }
 
-Widget.prototype.slideLeft = function()
+Widget.prototype.slideToggle = function(d, s, cb)
 {
+  var offset = this.offset;
+
+  // check if the widget is "in"
+  if( offset.x == 0 && offset.y == 0 )
+    this.slideOut(d, s, cb);
+  else
+    this.slideIn(d, s, cb);
+}
+
+Widget.prototype.slideIn = function(d, s, cb)
+{
+  var offset = this.offset;
+
+  // check if the widget is already "in"
+  if( offset.x == 0 && offset.y == 0 )
+    return;
+
+  // set sane default direction
+  d = d || "left";
+
+  // set sane default speed
+  s = s || 1000;
+
+  // set sane callback
+  cb = cb || function() {};
+
+  // calculate number of frames to animate for
+  this.animate_frames = Math.ceil(s / 40);
+
+  var delta;
+
+  switch( d )
+  {
+    case "left":
+      delta = new Vector2(
+        Math.ceil(this.bounds.x2 / this.animate_frames),
+        0
+      );
+      break;
+    case "right":
+      delta = new Vector2(
+        -Math.ceil((this.parent.bounds.w - this.bounds.x) / this.animate_frames),
+        0
+      );
+      break;
+    case "up":
+      delta = new Vector2(
+        0,
+        Math.ceil(this.bounds.y2 / this.animate_frames)
+      );
+      break;
+    case "down":
+      delta = new Vector2(
+        0,
+        -Math.ceil((this.parent.bounds.h - this.bounds.y) / this.animate_frames)
+      );
+      break;
+    default:
+      return;
+  }
+
+  offset.set(delta.x, delta.y);
+  offset.scale(-this.animate_frames);
+  var to = this;
+
+  this.animate_cb = {
+    'process': function() {
+      offset.translate(delta);
+    },
+    'complete': function() {
+      cb();
+    }
+  };
+
+
   this.animate = true;
   this.animate_index = 0;
-  this.animate_delta_v = new Vector2(
-    -(this.bounds.x2 / this.animate_frames),
-    0
-  );
-  this.animate_end_state = 0;
-
+  this.set_visibility(true);
   this.make_dirty();
 }
 
-Widget.prototype.slideRight = function()
+Widget.prototype.slideOut = function(d, s, cb)
 {
+  var offset = this.offset;
+
+  // check if we the widget is already "out"
+  if( offset.x != 0 && offset.y != 0 )
+    return;
+
+  // set sane default direction
+  d = d || "left";
+
+  // set sane default speed
+  s = s || 1000;
+
+  // set sane callback
+  cb = cb || function() {};
+
+  // calculate number of frames to animate for
+  this.animate_frames = s / 20;
+
+  var delta;
+
+  switch( d )
+  {
+    case "left":
+      delta = new Vector2(
+        -Math.ceil(this.bounds.x2 / this.animate_frames),
+        0
+      );
+      break;
+    case "right":
+      delta = new Vector2(
+        Math.ceil((this.parent.bounds.w - this.bounds.x) / this.animate_frames),
+        0
+      );
+      break;
+    case "up":
+      delta = new Vector2(
+        0,
+        -Math.ceil(this.bounds.y2 / this.animate_frames)
+      );
+      break;
+    case "down":
+      delta = new Vector2(
+        0,
+        Math.ceil((this.parent.bounds.h - this.bounds.y) / this.animate_frames)
+      );
+      break;
+    default:
+      return;
+  }
+
+  var to = this;
+
+  this.animate_cb = {
+    'process': function() {
+      offset.translate(delta);
+    },
+    'complete': function() {
+      to.alpha = 0;
+      to.set_visibility(false);
+      cb();
+    }
+  };
+
   this.animate = true;
   this.animate_index = 0;
-  this.animate_delta_v = new Vector2(
-    (this.parent.bounds.w - this.bounds.x) / this.animate_frames,
-    0
-  );
-  this.animate_end_state = ( ! this.visible );
-  this.visible = true;
-
+  this.set_visibility(true);
   this.make_dirty();
 }
 
-Widget.prototype.slideUp = function()
+Widget.prototype.fadeToggle = function(s, cb)
 {
+  // check if the widget is "faded in"
+  if( this.alpha == 0 )
+    this.fadeIn(s, cb);
+  else
+    this.fadeOut(s, cb);
+}
+
+
+Widget.prototype.fadeIn = function(s, cb)
+{
+  // check if we the widget is already "out"
+  if( this.alpha == 1 &&
+      this.visibile )
+    return;
+
+  // set sane default speed
+  s = s || 1000;
+
+  // set sane callback
+  cb = cb || function() {};
+
+  // calculate number of frames to animate for
+  this.animate_frames = s / 40;
+
+  var to = this;
+  var delta = 1 / this.animate_frames;
+
+  this.animate_cb = {
+    'process': function() {
+      to.alpha += delta;
+    },
+    'complete': function() {
+      to.alpha = 1;
+      cb();
+    }
+  };
+
   this.animate = true;
   this.animate_index = 0;
-  this.animate_delta_v = new Vector2(
-    0,
-    -(this.bounds.y2 / this.animate_frames)
-  );
-  this.animate_end_state = 0;
-
+  this.set_visibility(true);
   this.make_dirty();
 }
 
-Widget.prototype.slideDown = function()
+
+
+Widget.prototype.fadeOut = function(s, cb)
 {
+  // check if we the widget is already "out"
+  if( this.alpha == 0 ||
+      ! this.visible )
+    return;
+
+  // set sane default speed
+  s = s || 1000;
+
+  // set sane callback
+  cb = cb || function() {};
+
+  // calculate number of frames to animate for
+  this.animate_frames = s / 40;
+
+  var to = this;
+  var delta = 1 / this.animate_frames;
+
+  this.animate_cb = {
+    'process': function() {
+      to.alpha -= delta;
+    },
+    'complete': function() {
+      to.alpha = 0;
+      to.set_visibility(false);
+      cb();
+    }
+  };
+
   this.animate = true;
   this.animate_index = 0;
-  this.animate_delta_v = new Vector2(
-    0,
-    (this.parent.bounds.h - this.bounds.y) / this.animate_frames
-  );
-  this.animate_end_state = 0;
-
+  this.set_visibility(true);
   this.make_dirty();
 }
 
 
 // STYLING
-
-Widget.prototype.set_label_alignment = function(type)
+Widget.prototype.set_label_alignment = function(mode_h, mode_v)
 {
-  switch(type)
+  this.set_label_alignment_horizontal(mode_h);
+  this.set_label_alignment_vertical(mode_v);
+}
+
+Widget.prototype.set_label_alignment_horizontal = function(mode)
+{
+  mode = mode || 'center';
+
+  switch( mode )
   {
-    case "center":
-    case "left":
-    case "right":
-      this.label_alignment = text;
+    case 'center':
+    case 'left':
+    case 'right':
+      this.label_alignment_horizontal = mode;
       break;
     default:
-      this.label_alignment = "left";
+      this.label_alignment_horizontal = 'center';
+  }
+}
+
+Widget.prototype.set_label_alignment_vertical = function(mode)
+{
+  mode = mode || 'middle';
+
+  switch( mode )
+  {
+    case 'top':
+    case 'middle':
+    case 'baseline':
+      this.label_alignment_vertical = mode;
+      break;
+    default:
+      this.label_alignment_vertical = 'middle';
   }
 }
 
@@ -282,14 +411,26 @@ Widget.prototype.set_label = function(text)
   this.label = text;
 }
 
+Widget.prototype.set_label_font = function(font)
+{
+  this.label_font = font;
+}
+
+Widget.prototype.set_label_style = function(style)
+{
+  this.label_style = style;
+}
+
 
 Widget.prototype.set_background_image = function(path)
 {
-  this.bgimage.src = path;
-  this.bgimage.onerror = function(){ alert("Unable to load image: " + this.src); };
+  this.background_image = new Image();
+
+  this.background_image.src = path;
+  this.background_image.onerror = function(){ alert("Unable to load image: " + this.src); };
 
   var this_object = this;
-  this.bgimage.onload = function() { this_object.make_dirty(); };
+  this.background_image.onload = function() { this_object.make_dirty(); };
 }
 
 Widget.prototype.set_background_colour = function(colour)
@@ -298,12 +439,11 @@ Widget.prototype.set_background_colour = function(colour)
 }
 
 
-// INPUT PROCESSING
+// EVENT HANDLING
 Widget.prototype.mouse_listener = function(e, o, a)
 {
   x = e.pageX - o.canvas.offsetLeft;
   y = e.pageY - o.canvas.offsetLeft;
-  console.log("action: " + a + " x:" + x + " y:" + y);
 
   o.mouse_process(x, y, a);
 }
@@ -323,14 +463,36 @@ Widget.prototype.mouse_process = function(x, y, a)
   for( c in this.children )
     handled |= this.children[c].mouse_process(cx, cy, a);
 
-  if ( ! handled && this.bounds.pointIntersects(x,y) )
+  if( ! handled && this.bounds.pointIntersects(x,y) )
   {
     // do call back
-    if ( this.cb[a] )
+    if( this.cb[a] )
       handled = this.cb[a](x, y);
-    else
-      console.log("No callback supplied.");
+
+    // do correlated actions (eg click)
+    switch( a )
+    {
+      case "mouse_up":
+        if( this.is_pressed && this.cb["mouse_click"] )
+          this.cb["mouse_click"](x, y);
+
+        this.is_pressed = false;
+        this.make_dirty();
+        break;
+      case "mouse_down":
+        this.is_pressed = true;
+        this.make_dirty();
+        break;
+    }
+
+    // TODO: remove when event propogation is controllable
     handled = true;
+  }
+  // cancel a mouse down if mouse_up occured out of widget
+  else if( this.is_pressed && a == "mouse_up" )
+  {
+    this.is_pressed = false
+    this.make_dirty();
   }
 
   return handled;
@@ -370,15 +532,18 @@ Widget.prototype.process = function()
     return;
 
   // are we animating
-  if ( this.animate )
+  if( this.animate )
   {
     this.animate_index++;
 
-    this.offset.translate(this.animate_delta_v);
+    if( 'process' in this.animate_cb )
+        this.animate_cb['process']();
 
-    if( this.animate_index > this.animate_frames )
+    if( this.animate_index >= this.animate_frames )
     {
-      this.visible = this.animate_end_state;
+      if( 'complete' in this.animate_cb )
+        this.animate_cb['complete']();
+
       this.animate = false;
     }
 
@@ -401,9 +566,7 @@ Widget.prototype.render = function(context, x, y)
     return;
 
   if( ! this.visible )
-  {
     return;
-  }
 
   // save our context
   context.save();
@@ -411,25 +574,21 @@ Widget.prototype.render = function(context, x, y)
   // offset the view (accounts for animations)
   context.translate(x + this.offset.x, y + this.offset.y);
 
-  // all children must be confined to parents bounds
-  context.beginPath();
-  context.rect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
-  context.clip();
-  context.closePath();
+  if( this.alpha > 0 && this.alpha < 1 )
+    context.globalAlpha = this.alpha;
+
+  // perform clipping as appropriate
+  if( this.clip )
+  {
+    context.beginPath();
+    context.rect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+    context.clip();
+    context.closePath();
+  }
 
   // draw the widget
-  if( this.bgimage.src != "" && this.bgimage.complete )
-  {
-    context.drawImage(this.bgimage, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
-  }
-  else
-  {
-    context.fillStyle = this.bgcolour;
-    context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
-  }
-
-  if ( this.label != "" )
-    this.render_label(context);
+  this.render_widget(context);
+  this.render_label(context);
 
   for( c in this.children )
     this.children[c].render(context, this.bounds.x, this.bounds.y);
@@ -439,24 +598,65 @@ Widget.prototype.render = function(context, x, y)
   this.dirty = false;
 }
 
+Widget.prototype.render_widget = function(context)
+{
+  // draw the widget
+  if( this.bgcolour != '' )
+  {
+    context.fillStyle = this.bgcolour;
+    context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+  }
+
+  if( this.background_image instanceof Image &&
+      this.background_image.src != '' &&
+      this.background_image.complete )
+  {
+    context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+  }
+
+}
+
 Widget.prototype.render_label = function(context)
 {
-  var x = 0;
-  var y = 0;
+  if( this.label == '' )
+    return;
 
-  context.font = this.label_font;
-  var tb = context.measureText(this.label);
+  var x = this.bounds.x;
+  var y = this.bounds.y;
 
-  switch (this.label_alignment)
+  switch( this.label_alignment_horizontal )
   {
     case "center":
-      x = (bounds.width - tb.width) / 2;
+      x += this.bounds.w / 2;
+      context.textAlign = "center";
       break;
     case "right":
-      x = (bounds.width - tb.width);
+      x += (this.bounds.w);
+      context.textAlign = "right";
+      break;
+    case "left":
+      context.textAlign = "left";
       break;
   }
 
+  switch( this.label_alignment_vertical )
+  {
+    case "top":
+      context.textBaseline = "top";
+      break;
+    case "middle":
+      context.textBaseline = "middle";
+      y += (this.bounds.h/2);
+      break;
+    case "bottom":
+      context.textBaseline = "bottom";
+      y += (this.bounds.h);
+      break;
+  }
+
+
+  context.font = this.label_font;
+  context.fillStyle = this.label_style;
   context.fillText(this.label, x, y);
 }
 
@@ -479,12 +679,12 @@ Widget.prototype.update = function()
   {
     this.context.save();
 
-    w.render(this.context, 0, 0);
+    this.render(this.context, 0, 0);
 
     this.context.restore();
   }
 
   // reschedule if we're looping
   if ( this.looping )
-    setTimeout( ( function(scope) { return function() { scope.update(); }; } )(this), 20);
+    setTimeout( ( function(scope) { return function() { scope.update(); }; } )(this), 40);
 }
