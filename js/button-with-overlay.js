@@ -425,6 +425,8 @@ Button.prototype.set_image_down = function(path)
   this.image_down.onload = function() { this_object.make_dirty(); };
 }
 
+//
+// RENDERING
 
 Button.prototype.render_widget = function(context)
 {

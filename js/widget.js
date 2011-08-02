@@ -12,10 +12,10 @@ Widget = function(p, x, y, w, h, c)
   this.id = 0;
 
   this.label = '';
-  this.label_font = '12px sans-serif';
-  this.label_style = '#000000';
-  this.label_alignment_horizontal = 'left';
-  this.label_alignment_vertical = 'middle';
+  this.text_font = '12px sans-serif';
+  this.text_style = '#000000';
+  this.text_alignment_horizontal = 'left';
+  this.text_alignment_vertical = 'middle';
 
   this.children = [];
   this.visible = true;
@@ -28,11 +28,17 @@ Widget = function(p, x, y, w, h, c)
 
   this.clip = true;
 
-  // callbacks
-  this.cb = {};
+  // event callbacks
+  this.event_cb = {
+    'system': {},
+    'user': {}
+  }
 
   // event state
   this.is_pressed = false;
+  this.is_dragged = false;
+
+  this.register_callbacks(this);
 
   // rendering members
   this.looping = false;
@@ -69,7 +75,7 @@ Widget.prototype.set_canvas = function(canvas)
 {
   if( ! ( canvas instanceof HTMLCanvasElement ) )
   {
-    alert("You have not supplied a canvas element.");
+    console.log('ERROR: You have not supplied a canvas element.');
     return;
   }
 
@@ -84,22 +90,8 @@ Widget.prototype.set_canvas = function(canvas)
   // apply our handling routines
   canvas.addEventListener("mousedown", function(e){ this_object.mouse_listener(e, this_object, "mouse_down") }, false);
   canvas.addEventListener("mouseup", function(e){ this_object.mouse_listener(e, this_object, "mouse_up") }, false);
-//  canvas.addEventListener("mousemove", function(e){ this_object.mouse_listener(e, this_object, "mouse_move") }, false);
-}
-
-Widget.prototype.add_event_listener = function(a, cb)
-{
-  switch( a )
-  {
-    case "mouse_down":
-    case "mouse_up":
-    case "mouse_move":
-    case "mouse_click":
-      this.cb[a] = cb;
-      break;
-    default:
-      alert("Unknown event type supplied: " + a);
-  }
+  canvas.addEventListener("mousemove", function(e){ this_object.mouse_listener(e, this_object, "mouse_move") }, false);
+  canvas.addEventListener("mouseout", function(e){ this_object.mouse_listener(e, this_object, "mouse_out") }, false);
 }
 
 Widget.prototype.add_child = function(child)
@@ -368,13 +360,13 @@ Widget.prototype.fadeOut = function(s, cb)
 
 
 // STYLING
-Widget.prototype.set_label_alignment = function(mode_h, mode_v)
+Widget.prototype.set_text_alignment = function(mode_h, mode_v)
 {
-  this.set_label_alignment_horizontal(mode_h);
-  this.set_label_alignment_vertical(mode_v);
+  this.set_text_alignment_horizontal(mode_h);
+  this.set_text_alignment_vertical(mode_v);
 }
 
-Widget.prototype.set_label_alignment_horizontal = function(mode)
+Widget.prototype.set_text_alignment_horizontal = function(mode)
 {
   mode = mode || 'center';
 
@@ -383,14 +375,14 @@ Widget.prototype.set_label_alignment_horizontal = function(mode)
     case 'center':
     case 'left':
     case 'right':
-      this.label_alignment_horizontal = mode;
+      this.text_alignment_horizontal = mode;
       break;
     default:
-      this.label_alignment_horizontal = 'center';
+      this.text_alignment_horizontal = 'center';
   }
 }
 
-Widget.prototype.set_label_alignment_vertical = function(mode)
+Widget.prototype.set_text_alignment_vertical = function(mode)
 {
   mode = mode || 'middle';
 
@@ -399,10 +391,10 @@ Widget.prototype.set_label_alignment_vertical = function(mode)
     case 'top':
     case 'middle':
     case 'baseline':
-      this.label_alignment_vertical = mode;
+      this.text_alignment_vertical = mode;
       break;
     default:
-      this.label_alignment_vertical = 'middle';
+      this.text_alignment_vertical = 'middle';
   }
 }
 
@@ -411,14 +403,14 @@ Widget.prototype.set_label = function(text)
   this.label = text;
 }
 
-Widget.prototype.set_label_font = function(font)
+Widget.prototype.set_text_font = function(font)
 {
-  this.label_font = font;
+  this.text_font = font;
 }
 
-Widget.prototype.set_label_style = function(style)
+Widget.prototype.set_text_style = function(style)
 {
-  this.label_style = style;
+  this.text_style = style;
 }
 
 
@@ -439,7 +431,28 @@ Widget.prototype.set_background_colour = function(colour)
 }
 
 
+//
 // EVENT HANDLING
+
+Widget.prototype.add_event_listener = function(a, cb)
+{
+  switch( a )
+  {
+    case "mouse_down":
+    case "mouse_up":
+    case "mouse_move":
+    case "mouse_click":
+    case "mouse_drag_start":
+    case "mouse_drag_move":
+    case "mouse_drag_end":
+      this.event_cb['user'][a] = cb;
+      break;
+    default:
+      console.log('WARN: Unknown event type supplied: ' + a);
+  }
+}
+
+
 Widget.prototype.mouse_listener = function(e, o, a)
 {
   x = e.pageX - o.canvas.offsetLeft;
@@ -447,6 +460,7 @@ Widget.prototype.mouse_listener = function(e, o, a)
 
   o.mouse_process(x, y, a);
 }
+
 
 Widget.prototype.mouse_process = function(x, y, a)
 {
@@ -465,23 +479,70 @@ Widget.prototype.mouse_process = function(x, y, a)
 
   if( ! handled && this.bounds.pointIntersects(x,y) )
   {
-    // do call back
-    if( this.cb[a] )
-      handled = this.cb[a](x, y);
+    // do user call back
+    if( this.event_cb['system'][a] )
+      handled |= this.event_cb['system'][a](x, y);
+
+    // do user call back
+    if( this.event_cb['user'][a] )
+      handled |= this.event_cb['user'][a](x, y);
 
     // do correlated actions (eg click)
     switch( a )
     {
-      case "mouse_up":
-        if( this.is_pressed && this.cb["mouse_click"] )
-          this.cb["mouse_click"](x, y);
+      case 'mouse_up':
+        if( this.is_pressed )
+        {
+          if( this.is_dragged )
+          {
+            if( this.event_cb['system']['mouse_drag_end'] )
+              this.event_cb['system']['mouse_drag_end'](x, y);
+
+            if( this.event_cb['user']['mouse_drag_end'] )
+              this.event_cb['user']['mouse_drag_end'](x, y);
+          }
+          else
+          {
+            if( this.event_cb['system']['mouse_click'] )
+              this.event_cb['system']['mouse_click'](x, y);
+
+            if( this.event_cb['user']['mouse_click'] )
+              this.event_cb['user']['mouse_click'](x, y);
+          }
+        }
 
         this.is_pressed = false;
         this.make_dirty();
         break;
-      case "mouse_down":
+
+      case 'mouse_down':
         this.is_pressed = true;
         this.make_dirty();
+        break;
+
+      case 'mouse_move':
+        if( this.is_pressed )
+        {
+          if( this.is_dragged )
+          {
+            if( this.event_cb['system']['mouse_drag_move'] )
+              this.event_cb['system']['mouse_drag_move'](x, y);
+
+            if( this.event_cb['user']['mouse_drag_move'] )
+              this.event_cb['user']['mouse_drag_move'](x, y);
+
+          }
+          else
+          {
+            this.is_dragged = true;
+
+            if( this.event_cb['system']['mouse_drag_start'] )
+              this.event_cb['system']['mouse_drag_start'](x, y);
+
+            if( this.event_cb['user']['mouse_drag_start'] )
+              this.event_cb['user']['mouse_drag_start'](x, y);
+          }
+        }
         break;
     }
 
@@ -489,14 +550,48 @@ Widget.prototype.mouse_process = function(x, y, a)
     handled = true;
   }
   // cancel a mouse down if mouse_up occured out of widget
-  else if( this.is_pressed && a == "mouse_up" )
+  else if( this.is_pressed &&
+           ( a == 'mouse_up' || a == 'mouse_out' ) )
   {
+    // mouse_click event does NOT occur when event closes out of widget
     this.is_pressed = false
+
+    // mouse_drag_end event DOES occur when event closes out of widget
+    if( this.is_dragged )
+    {
+      if( this.event_cb['system']['mouse_drag_end'] )
+        this.event_cb['system']['mouse_drag_end'](x, y);
+
+      if( this.event_cb['user']['mouse_drag_end'] )
+        this.event_cb['user']['mouse_drag_end'](x, y);
+    }
+    this.is_dragged = false
+
     this.make_dirty();
   }
 
   return handled;
 }
+
+Widget.prototype.mouse_down = function(x, y) {};
+Widget.prototype.mouse_up = function(x, y) {};
+Widget.prototype.mouse_click = function(x, y) {};
+Widget.prototype.mouse_move = function(x, y) {};
+Widget.prototype.mouse_drag_start = function(x, y) {};
+Widget.prototype.mouse_drag_move = function(x, y) {};
+Widget.prototype.mouse_drag_end = function(x, y) {};
+
+Widget.prototype.register_callbacks = function(o)
+{
+  this.event_cb['system']['mouse_down'] = ( function(scope){ return function(x, y) { scope.mouse_down(x, y); }; } )(o);
+  this.event_cb['system']['mouse_up'] = ( function(scope){ return function(x, y) { scope.mouse_up(x, y); }; } )(o);
+  this.event_cb['system']['mouse_click'] = ( function(scope){ return function(x, y) { scope.mouse_click(x, y); }; } )(o);
+  this.event_cb['system']['mouse_move'] = ( function(scope){ return function(x, y) { scope.mouse_move(x, y); }; } )(o);
+  this.event_cb['system']['mouse_drag_start'] = ( function(scope){ return function(x, y) { scope.mouse_drag_start(x, y); }; } )(o);
+  this.event_cb['system']['mouse_drag_move'] = ( function(scope){ return function(x, y) { scope.mouse_drag_move(x, y); }; } )(o);
+  this.event_cb['system']['mouse_drag_end'] = ( function(scope){ return function(x, y) { scope.mouse_drag_end(x, y); }; } )(o);
+}
+
 
 
 // PROCESS AND RENDERING
@@ -588,7 +683,6 @@ Widget.prototype.render = function(context, x, y)
 
   // draw the widget
   this.render_widget(context);
-  this.render_label(context);
 
   for( c in this.children )
     this.children[c].render(context, this.bounds.x, this.bounds.y);
@@ -614,6 +708,7 @@ Widget.prototype.render_widget = function(context)
     context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 
+  this.render_label(context);
 }
 
 Widget.prototype.render_label = function(context)
@@ -624,7 +719,7 @@ Widget.prototype.render_label = function(context)
   var x = this.bounds.x;
   var y = this.bounds.y;
 
-  switch( this.label_alignment_horizontal )
+  switch( this.text_alignment_horizontal )
   {
     case "center":
       x += this.bounds.w / 2;
@@ -639,7 +734,7 @@ Widget.prototype.render_label = function(context)
       break;
   }
 
-  switch( this.label_alignment_vertical )
+  switch( this.text_alignment_vertical )
   {
     case "top":
       context.textBaseline = "top";
@@ -654,9 +749,8 @@ Widget.prototype.render_label = function(context)
       break;
   }
 
-
-  context.font = this.label_font;
-  context.fillStyle = this.label_style;
+  context.font = this.text_font;
+  context.fillStyle = this.text_style;
   context.fillText(this.label, x, y);
 }
 

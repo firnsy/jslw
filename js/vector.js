@@ -5,8 +5,17 @@ Vector2 = function(x, y)
 
 Vector2.prototype.set = function(x, y)
 {
-  this.x = x + 0;
-  this.y = y + 0;
+  // check if first parameter is a Vector first
+  if( typeof x == Vector2 )
+  {
+    this.x = x.x;
+    this.y = x.y;
+  }
+  else
+  {
+    this.x = x + 0;
+    this.y = y + 0;
+  }
 }
 
 Vector2.prototype.shiftX = function(x)
