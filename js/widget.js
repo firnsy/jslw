@@ -4,7 +4,7 @@ Widget = function(p, x, y, w, h, c)
 
   this.bounds = new Rect(x, y, w, h);
   this.offset = new Vector2(0, 0);
-  this.bgcolour = '';
+  this.bgcolor = '';
   this.background_image = null;
 
   this.parent = p;
@@ -45,9 +45,7 @@ Widget = function(p, x, y, w, h, c)
   this.canvas = null;
   this.context = null;
 
-  // add to parent object if appropriate
-  if( p instanceof Widget )
-    p.add_child(this);
+  this.set_parent(p);
 
   this.make_dirty();
 }
@@ -92,6 +90,24 @@ Widget.prototype.set_canvas = function(canvas)
   canvas.addEventListener("mouseup", function(e){ this_object.mouse_listener(e, this_object, "mouse_up") }, false);
   canvas.addEventListener("mousemove", function(e){ this_object.mouse_listener(e, this_object, "mouse_move") }, false);
   canvas.addEventListener("mouseout", function(e){ this_object.mouse_listener(e, this_object, "mouse_out") }, false);
+}
+
+Widget.prototype.set_parent = function(p)
+{
+  // if we have an existing parent then remove child from it
+  if( this.p instanceof Widget )
+  {
+
+  }
+
+  // add to parent object if appropriate
+  if( p instanceof Widget )
+  {
+    this.p = p;
+
+    p.add_child(this);
+  }
+
 }
 
 Widget.prototype.add_child = function(child)
@@ -292,6 +308,8 @@ Widget.prototype.fadeIn = function(s, cb)
       this.visibile )
     return;
 
+  this.alpha = 0;
+
   // set sane default speed
   s = s || 1000;
 
@@ -301,15 +319,15 @@ Widget.prototype.fadeIn = function(s, cb)
   // calculate number of frames to animate for
   this.animate_frames = s / 40;
 
-  var to = this;
+  var self = this;
   var delta = 1 / this.animate_frames;
 
   this.animate_cb = {
     'process': function() {
-      to.alpha += delta;
+      self.alpha += delta;
     },
     'complete': function() {
-      to.alpha = 1;
+      self.alpha = 1;
       cb();
     }
   };
@@ -329,6 +347,8 @@ Widget.prototype.fadeOut = function(s, cb)
       ! this.visible )
     return;
 
+  this.alpha = 1;
+
   // set sane default speed
   s = s || 1000;
 
@@ -338,16 +358,16 @@ Widget.prototype.fadeOut = function(s, cb)
   // calculate number of frames to animate for
   this.animate_frames = s / 40;
 
-  var to = this;
+  var self = this;
   var delta = 1 / this.animate_frames;
 
   this.animate_cb = {
     'process': function() {
-      to.alpha -= delta;
+      self.alpha -= delta;
     },
     'complete': function() {
-      to.alpha = 0;
-      to.set_visibility(false);
+      self.alpha = 0;
+      self.set_visibility(false);
       cb();
     }
   };
@@ -425,9 +445,9 @@ Widget.prototype.set_background_image = function(path)
   this.background_image.onload = function() { this_object.make_dirty(); };
 }
 
-Widget.prototype.set_background_colour = function(colour)
+Widget.prototype.set_background_color = function(color)
 {
-  this.bgcolour = colour;
+  this.bgcolor = color;
 }
 
 
@@ -512,6 +532,7 @@ Widget.prototype.mouse_process = function(x, y, a)
         }
 
         this.is_pressed = false;
+        this.is_dragged = false
         this.make_dirty();
         break;
 
@@ -695,9 +716,9 @@ Widget.prototype.render = function(context, x, y)
 Widget.prototype.render_widget = function(context)
 {
   // draw the widget
-  if( this.bgcolour != '' )
+  if( this.bgcolor != '' )
   {
-    context.fillStyle = this.bgcolour;
+    context.fillStyle = this.bgcolor;
     context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 

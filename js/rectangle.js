@@ -6,7 +6,7 @@ Rect = function(x, y, w, h)
 
 Rect.prototype.set = function(x, y, w, h)
 {
-  if( typeof x == 'Rect' )
+  if( x instanceof Rect )
   {
     this.x = x.x;     // x coordinate for top-left
     this.y = x.y;     // y coordinate for top-left
@@ -24,6 +24,20 @@ Rect.prototype.set = function(x, y, w, h)
     this.x2 = x + w;  // x coordinate for bottom-right
     this.y2 = y + h;  // y coordinate for bottom-right
   }
+}
+
+Rect.prototype.shrink = function(s)
+{
+  // can't shrink if geometry will be <= 0 afterwards
+  if( this.w <= (s*2) || this.h <= (s*2) )
+    return;
+
+  this.x += s;
+  this.y += s;
+  this.w -= (s + s);
+  this.h -= (s + s);
+  this.x2 -= s;
+  this.y2 -= s;
 }
 
 Rect.prototype.offset = function(x, y)

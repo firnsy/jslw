@@ -6,7 +6,7 @@ Vector2 = function(x, y)
 Vector2.prototype.set = function(x, y)
 {
   // check if first parameter is a Vector first
-  if( typeof x == Vector2 )
+  if( x instanceof Vector2 )
   {
     this.x = x.x;
     this.y = x.y;
