@@ -1,3 +1,28 @@
+/*
+ * This file is part of the NSM framework
+ *
+ * Copyright (C) 2010-2011, Ian Firns        <firnsy@securixlive.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License Version 2 as
+ * published by the Free Software Foundation.  You may not use, modify or
+ * distribute this program under any other version of the GNU General
+ * Public License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*/
+
+//
+// IMPLEMENTATION
+//
+
 ListBox = function(p, x, y, w, h, c)
 {
   // call our super constructure
@@ -14,9 +39,10 @@ ListBox = function(p, x, y, w, h, c)
   this.item_index_active = -1;
   this.item_height = 20;
   this.item_bounds = new Rect(this.bounds);
-  this.item_bounds.shrink(10);
-  this.active_font_style = '#000';
-  this.active_style = '#fff';
+  this.item_bounds.scale(-10);
+  this.active_font_color = new Color('#000');
+  this.active_color = new Color('#fff');
+
   this.item_visible_count = Math.floor(this.item_bounds.h / this.item_height) + 1;
 
   this.drag_origin = new Vector2(0,0);
@@ -126,15 +152,27 @@ ListBox.prototype.set_item_height = function(height)
 }
 
 
-ListBox.prototype.active_font_style = function(font)
+ListBox.prototype.active_font_color = function(c)
 {
-  this.active_font_style = font;
+  if( ! c instanceof Color )
+  {
+    console.log('ERROR: Must supply a Color object.');
+    return;
+  }
+
+  this.active_font_color = c;
 }
 
 
-ListBox.prototype.active_style = function(style)
+ListBox.prototype.active_color = function(c)
 {
-  this.active_style = style;
+  if( ! c instanceof Color )
+  {
+    console.log('ERROR: Must supply a Color object.');
+    return;
+  }
+
+  this.active_style = c;
 }
 
 
@@ -143,9 +181,9 @@ ListBox.prototype.active_style = function(style)
 ListBox.prototype.render_widget = function(context)
 {
   // draw the widget
-  if( this.bgcolor != '' )
+  if( this.background_color instanceof Color )
   {
-    context.fillStyle = this.bgcolor;
+    context.fillStyle = this.background_color.getRGB();
     context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 
@@ -157,8 +195,10 @@ ListBox.prototype.render_widget = function(context)
   }
 
   context.textBaseline = 'middle';
-  context.font = this.text_font;
-  context.fillStyle = this.text_style;
+  context.font = this.font;
+
+  if( this.font_color instanceof Color )
+    context.fillStyle = this.font_color.getRGBA(Math.round(this.alpha * 255));
 
   var item_stride = Math.min(this.item_visible_count + 1, this.list.length);
   var item_y = this.item_bounds.y - (this.list_offset % this.item_height ) + (this.item_height / 2);
@@ -181,10 +221,14 @@ ListBox.prototype.render_widget = function(context)
     {
       context.save();
 
-      context.fillStyle = this.active_style;
+      if( this.active_color instanceof Color )
+        context.fillStyle = this.active_color.getRGB();
+
       context.fillRect(this.item_bounds.x, item_y-(this.item_height / 2), this.item_bounds.w, this.item_height);
 
-      context.fillStyle = this.active_font_style;
+      if( this.active_font_color instanceof Color )
+        context.fillStyle = this.active_font_color.getRGBA(Math.round(this.alpha * 255));
+
       context.fillText(item, this.item_bounds.x, item_y);
 
       context.restore();

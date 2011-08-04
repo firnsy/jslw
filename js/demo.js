@@ -13,13 +13,13 @@ function demo_run()
   w = new Widget(null, 0, 0, 800, 480);
   w.set_root();
   w.set_canvas( $("#gui")[0] );
-  w.set_background_colour('rgb(128, 0, 0)');
+  w.set_background_color(new Color('rgb(128, 0, 0)'));
 
   b2 = new ListBox(w, 150, 50, 500, 300);
-  b2.set_background_colour('#007f7f');
+  b2.set_background_color(new Color('#007f7f'));
   b2.set_item_height(40);
-  b2.set_text_font('24px sans-serif');
-  b2.set_text_style('#fff');
+  b2.set_font('24px sans-serif');
+  b2.set_font_color(new Color('#fff'));
   b2.add_item('item 0');
   b2.add_item('item 1');
   b2.add_item('item 2');

@@ -1,3 +1,28 @@
+/*
+ * This file is part of the NSM framework
+ *
+ * Copyright (C) 2010-2011, Ian Firns        <firnsy@securixlive.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License Version 2 as
+ * published by the Free Software Foundation.  You may not use, modify or
+ * distribute this program under any other version of the GNU General
+ * Public License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*/
+
+//
+// IMPLEMENTATION
+//
+
 Button = function(p, x, y, w, h, c)
 {
   // call our super constructure
@@ -37,7 +62,9 @@ Button = function(p, x, y, w, h, c)
   this.cb = {};
 }
 
+
 Button.prototype = new Widget;
+
 
 Button.prototype.set_image_overlay = function(path)
 {
@@ -56,11 +83,13 @@ Button.prototype.set_image_overlay = function(path)
 //  this.image = this.image_up;
 }
 
+
 Button.prototype.set_overlay_alignment = function(h, v)
 {
   this.set_overlay_alignment_horizontal(h);
   this.set_overlay_alignment_vertical(v);
 }
+
 
 Button.prototype.set_overlay_alignment_horizontal = function(type)
 {
@@ -80,6 +109,7 @@ Button.prototype.set_overlay_alignment_horizontal = function(type)
 
   this.overlay_calculate_offset();
 }
+
 
 Button.prototype.set_overlay_alignment_vertical = function(type)
 {
@@ -131,6 +161,7 @@ Button.prototype.overlay_calculate_offset = function()
   }
 }
 
+
 Button.prototype.add_types = function(type)
 {
   type = type || [];
@@ -164,6 +195,7 @@ Button.prototype.add_types = function(type)
       console.log("Type already exists: " + new_type);
   }
 }
+
 
 Button.prototype.set_active_type = function(type)
 {
@@ -201,11 +233,13 @@ Button.prototype.set_type_image_default = function(type, path)
   };
 }
 
+
 Button.prototype.set_type_alignment = function(t, h, v)
 {
   this.set_overlay_type_horizontal(t, h);
   this.set_overlay_type_vertical(t, v);
 }
+
 
 Button.prototype.set_type_alignment_horizontal = function(type, mode)
 {
@@ -232,6 +266,7 @@ Button.prototype.set_type_alignment_horizontal = function(type, mode)
   this.overlay_calculate_offset();
 }
 
+
 Button.prototype.set_type_alignment_vertical = function(mode)
 {
   if ( this.type_states['types'].indexOf(type) == -1 )
@@ -256,6 +291,7 @@ Button.prototype.set_type_alignment_vertical = function(mode)
 
   this.mode_calculate_offset();
 }
+
 
 // TODO: Private
 Button.prototype.type_calculate_offset = function(types)
@@ -317,6 +353,7 @@ Button.prototype.type_calculate_offset = function(types)
   }
 }
 
+
 Button.prototype.add_states = function(state)
 {
   state = state || [];
@@ -340,6 +377,7 @@ Button.prototype.add_states = function(state)
   }
 }
 
+
 Button.prototype.set_active_state = function(state)
 {
   if ( state == null || state == '' )
@@ -354,6 +392,7 @@ Button.prototype.set_active_state = function(state)
   this.type_states['active_state'] = state;
   this.make_dirty();
 }
+
 
 Button.prototype.set_state_image_default = function(state, path)
 {
@@ -379,6 +418,7 @@ Button.prototype.set_state_image_default = function(state, path)
     this_object.make_dirty();
   };
 }
+
 
 Button.prototype.set_type_state_image = function(type, state, path)
 {
@@ -414,6 +454,7 @@ Button.prototype.set_type_state_image = function(type, state, path)
   };
 }
 
+
 Button.prototype.set_image_down = function(path)
 {
   this.image_down = new Image();
@@ -430,6 +471,13 @@ Button.prototype.set_image_down = function(path)
 
 Button.prototype.render_widget = function(context)
 {
+
+  if( this.background_color instanceof Color )
+  {
+    context.fillStyle = this.background_color.getRGBA(Math.round(this.alpha * 255));
+    context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+  }
+
   // draw the background image
   if( this.background_image instanceof Image &&
       this.background_image.src != '' &&
@@ -477,15 +525,8 @@ Button.prototype.render_widget = function(context)
     context.drawImage(this.image_overlay, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
   }
 
-/*
-  else
-  {
-    context.fillStyle = this.bgcolour;
-    context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
-  }
-*/
 
-  this.render_label(context);
+  this.render_caption(context);
 }
 
 

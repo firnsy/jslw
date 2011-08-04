@@ -1,24 +1,27 @@
-Color = function(c)
-Color.getFilteredObject = function(str)
+/*
+ * This file is part of the NSM framework
+ *
+ * Copyright (C) 2010-2011, Ian Firns        <firnsy@securixlive.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License Version 2 as
+ * published by the Free Software Foundation.  You may not use, modify or
+ * distribute this program under any other version of the GNU General
+ * Public License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*/
 
-Color.prototype.check = function()
-Color.prototype.revert = function()
-
-Color.prototype.invert = function()
-Color.prototype.lighten = function(amount)
-Color.prototype.darken = function(amount)
-Color.prototype.grayscale = function()
-
-Color.prototype.getLighter = function(amount, returnRGB)
-Color.prototype.getDarker = function(amount, returnRGB)
-Color.prototype.getInverted = function(returnRGB)
-Color.prototype.getGrayscale = function(returnRGB)
-
-Color.prototype.getRGB = function()
-Color.prototype.getHex = function(shorthandReturnAcceptable)
-
-
-
+//
+// IMPLEMENTATION
+//
 
 /*
  *     Converts INT to HEX
@@ -43,6 +46,7 @@ Color = function(c)
   this.r = c.r;
   this.g = c.g;
   this.b = c.b;
+  this.a = 1.0;
   this.check();
   this.gray = Math.round(.3*this.r + .59*this.g + .11*this.b);
   this.hex = this.getHex();
@@ -239,7 +243,10 @@ Color.prototype.getRGB = function()
  *         */
 Color.prototype.getRGBA = function(alpha)
 {
+  alpha = alpha || this.alpha;
+
   this.check();
+
   return 'rgba('+this.r+','+this.g+','+this.b+','+alpha+')';
 }
 
@@ -258,4 +265,9 @@ Color.prototype.getHex = function(shorthandReturnAcceptable)
     return this.hex.replace(/^#([\da-f])\1([\da-f])\2([\da-f])\3$/i, "#$1$2$3");
 
   return this.hex;
+}
+
+Color.prototype.toString = function()
+{
+  return '{r:' + this.r + ', g:' + this.g + ', b:' + this.b+ '}';
 }

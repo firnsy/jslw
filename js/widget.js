@@ -1,32 +1,58 @@
-// INITIALISATION
+/*
+ * This file is part of the NSM framework
+ *
+ * Copyright (C) 2010-2011, Ian Firns        <firnsy@securixlive.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License Version 2 as
+ * published by the Free Software Foundation.  You may not use, modify or
+ * distribute this program under any other version of the GNU General
+ * Public License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+*/
+
+//
+// IMPLEMENTATION
+//
+
 Widget = function(p, x, y, w, h, c)
 {
+  if( x instanceof Rect )
+    this.bounds = x;
+  else
+    this.bounds = new Rect(x, y, w, h);
 
-  this.bounds = new Rect(x, y, w, h);
   this.offset = new Vector2(0, 0);
-  this.bgcolor = '';
+  this.background_color = null;
   this.background_image = null;
-
   this.parent = p;
-  this.root = false;
-  this.id = 0;
 
-  this.label = '';
-  this.text_font = '12px sans-serif';
-  this.text_style = '#000000';
+
+  // default member initialisation
+  this.root = false;
+  this.children = [];
+
+  this.caption = '';
+  this.font = '12px sans-serif';
+  this.font_color = new Color('#000000');
   this.text_alignment_horizontal = 'left';
   this.text_alignment_vertical = 'middle';
 
-  this.children = [];
   this.visible = true;
+  this.alpha = 1.0;
+  this.clip = true;
 
   this.animate = false;
   this.animate_frames = 0;
   this.animate_function = null;
-
-  this.alpha = 1.0;
-
-  this.clip = true;
 
   // event callbacks
   this.event_cb = {
@@ -42,6 +68,7 @@ Widget = function(p, x, y, w, h, c)
 
   // rendering members
   this.looping = false;
+  this.loop_timer = null;
   this.canvas = null;
   this.context = null;
 
@@ -50,16 +77,12 @@ Widget = function(p, x, y, w, h, c)
   this.make_dirty();
 }
 
-Widget.prototype.set_root = function()
-{
-  // handles all
-  this.root = true;
-}
 
 Widget.prototype.is_root = function()
 {
   return this.root;
 }
+
 
 Widget.prototype.get_root = function()
 {
@@ -68,6 +91,14 @@ Widget.prototype.get_root = function()
 
   return this.parent.get_root();
 }
+
+
+Widget.prototype.set_root = function()
+{
+  // handles all
+  this.root = true;
+}
+
 
 Widget.prototype.set_canvas = function(canvas)
 {
@@ -92,6 +123,7 @@ Widget.prototype.set_canvas = function(canvas)
   canvas.addEventListener("mouseout", function(e){ this_object.mouse_listener(e, this_object, "mouse_out") }, false);
 }
 
+
 Widget.prototype.set_parent = function(p)
 {
   // if we have an existing parent then remove child from it
@@ -110,24 +142,33 @@ Widget.prototype.set_parent = function(p)
 
 }
 
-Widget.prototype.add_child = function(child)
+
+Widget.prototype.add_child = function(c)
 {
   // add child to list of children
-  this.children.push(child);
+  this.children.push(c);
 }
 
 // VISIBILITY AND TRANSITION/ANIMATION
+
+Widget.prototype.get_visibility = function()
+{
+  return this.visible;
+}
+
 
 Widget.prototype.set_visibility = function(state)
 {
   this.visible = state;
 }
 
+
 Widget.prototype.hide = function()
 {
   this.visible = false;
   this.make_dirty();
 }
+
 
 Widget.prototype.show = function()
 {
@@ -136,6 +177,7 @@ Widget.prototype.show = function()
 
   this.make_dirty();
 }
+
 
 Widget.prototype.slideToggle = function(d, s, cb)
 {
@@ -147,6 +189,7 @@ Widget.prototype.slideToggle = function(d, s, cb)
   else
     this.slideIn(d, s, cb);
 }
+
 
 Widget.prototype.slideIn = function(d, s, cb)
 {
@@ -220,6 +263,7 @@ Widget.prototype.slideIn = function(d, s, cb)
   this.make_dirty();
 }
 
+
 Widget.prototype.slideOut = function(d, s, cb)
 {
   var offset = this.offset;
@@ -291,6 +335,7 @@ Widget.prototype.slideOut = function(d, s, cb)
   this.make_dirty();
 }
 
+
 Widget.prototype.fadeToggle = function(s, cb)
 {
   // check if the widget is "faded in"
@@ -339,7 +384,6 @@ Widget.prototype.fadeIn = function(s, cb)
 }
 
 
-
 Widget.prototype.fadeOut = function(s, cb)
 {
   // check if we the widget is already "out"
@@ -386,6 +430,7 @@ Widget.prototype.set_text_alignment = function(mode_h, mode_v)
   this.set_text_alignment_vertical(mode_v);
 }
 
+
 Widget.prototype.set_text_alignment_horizontal = function(mode)
 {
   mode = mode || 'center';
@@ -418,36 +463,62 @@ Widget.prototype.set_text_alignment_vertical = function(mode)
   }
 }
 
-Widget.prototype.set_label = function(text)
-{
-  this.label = text;
-}
 
-Widget.prototype.set_text_font = function(font)
+Widget.prototype.set_caption = function(t)
 {
-  this.text_font = font;
-}
-
-Widget.prototype.set_text_style = function(style)
-{
-  this.text_style = style;
+  this.caption = t;
 }
 
 
-Widget.prototype.set_background_image = function(path)
+Widget.prototype.set_font = function(f)
 {
-  this.background_image = new Image();
-
-  this.background_image.src = path;
-  this.background_image.onerror = function(){ alert("Unable to load image: " + this.src); };
-
-  var this_object = this;
-  this.background_image.onload = function() { this_object.make_dirty(); };
+  this.font = f;
 }
 
-Widget.prototype.set_background_color = function(color)
+
+Widget.prototype.set_font_color = function(c)
 {
-  this.bgcolor = color;
+  if( ! c instanceof Color )
+  {
+    console.log('ERROR: Must supply a Color object.');
+    return;
+  }
+
+  this.font_color = c;
+}
+
+
+Widget.prototype.set_background_image = function(i)
+{
+  if( i instanceof Image )
+  {
+    this.background_image = i;
+
+    if( i.src != '' && i.complete )
+      this.make_dirty();
+  }
+  else
+  {
+    this.background_image = new Image();
+
+    this.background_image.src = path;
+    this.background_image.onerror = function(){ alert("Unable to load image: " + this.src); };
+
+    var self = this;
+    this.background_image.onload = function() { self.make_dirty(); };
+  }
+}
+
+
+Widget.prototype.set_background_color = function(c)
+{
+  if( ! c instanceof Color )
+  {
+    console.log('ERROR: Must supply a Color object.');
+    return;
+  }
+
+  this.background_color = c;
 }
 
 
@@ -497,7 +568,7 @@ Widget.prototype.mouse_process = function(x, y, a)
   for( c in this.children )
     handled |= this.children[c].mouse_process(cx, cy, a);
 
-  if( ! handled && this.bounds.pointIntersects(x,y) )
+  if( ! handled && this.bounds.intersects(x,y) )
   {
     // do user call back
     if( this.event_cb['system'][a] )
@@ -594,14 +665,6 @@ Widget.prototype.mouse_process = function(x, y, a)
   return handled;
 }
 
-Widget.prototype.mouse_down = function(x, y) {};
-Widget.prototype.mouse_up = function(x, y) {};
-Widget.prototype.mouse_click = function(x, y) {};
-Widget.prototype.mouse_move = function(x, y) {};
-Widget.prototype.mouse_drag_start = function(x, y) {};
-Widget.prototype.mouse_drag_move = function(x, y) {};
-Widget.prototype.mouse_drag_end = function(x, y) {};
-
 Widget.prototype.register_callbacks = function(o)
 {
   this.event_cb['system']['mouse_down'] = ( function(scope){ return function(x, y) { scope.mouse_down(x, y); }; } )(o);
@@ -613,6 +676,13 @@ Widget.prototype.register_callbacks = function(o)
   this.event_cb['system']['mouse_drag_end'] = ( function(scope){ return function(x, y) { scope.mouse_drag_end(x, y); }; } )(o);
 }
 
+Widget.prototype.mouse_up = function(x, y) {}
+Widget.prototype.mouse_down = function(x, y) {}
+Widget.prototype.mouse_move = function(x, y) {}
+Widget.prototype.mouse_click = function(x, y) {}
+Widget.prototype.mouse_drag_start = function(x, y) {}
+Widget.prototype.mouse_drag_move = function(x, y) {}
+Widget.prototype.mouse_drag_end = function(x, y) {}
 
 
 // PROCESS AND RENDERING
@@ -621,12 +691,15 @@ Widget.prototype.make_dirty = function()
 {
   this.dirty = true;
 
-//  this.get_root().update();
+  // this.get_root().update_no_loop();
 }
 
-Widget.prototype.make_clean = function()
+Widget.prototype.set_dirty = function(s)
 {
-  this.dirty = false;
+  this.dirty = s;
+
+  if( this.dirty )
+    this.get_root().update_no_loop();
 }
 
 Widget.prototype.is_dirty = function()
@@ -690,8 +763,7 @@ Widget.prototype.render = function(context, x, y)
   // offset the view (accounts for animations)
   context.translate(x + this.offset.x, y + this.offset.y);
 
-  if( this.alpha > 0 && this.alpha < 1 )
-    context.globalAlpha = this.alpha;
+  context.globalAlpha = this.alpha;
 
   // perform clipping as appropriate
   if( this.clip )
@@ -716,9 +788,9 @@ Widget.prototype.render = function(context, x, y)
 Widget.prototype.render_widget = function(context)
 {
   // draw the widget
-  if( this.bgcolor != '' )
+  if( this.background_color instanceof Color )
   {
-    context.fillStyle = this.bgcolor;
+    context.fillStyle = this.background_color.getRGBA(Math.round(this.alpha * 255));
     context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 
@@ -729,12 +801,12 @@ Widget.prototype.render_widget = function(context)
     context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 
-  this.render_label(context);
+  this.render_caption(context);
 }
 
-Widget.prototype.render_label = function(context)
+Widget.prototype.render_caption = function(context)
 {
-  if( this.label == '' )
+  if( this.caption == '' )
     return;
 
   var x = this.bounds.x;
@@ -770,8 +842,11 @@ Widget.prototype.render_label = function(context)
       break;
   }
 
-  context.font = this.text_font;
-  context.fillStyle = this.text_style;
+  context.font = this.font;
+
+  if( this.font_color instanceof Color )
+    context.fillStyle = this.font_color.getRGBA(Math.round(this.alpha * 255));
+
   context.fillText(this.label, x, y);
 }
 
@@ -790,7 +865,7 @@ Widget.prototype.update = function()
 {
   var is_dirty = this.process();
 
-  if ( is_dirty )
+  if( is_dirty )
   {
     this.context.save();
 
@@ -800,6 +875,24 @@ Widget.prototype.update = function()
   }
 
   // reschedule if we're looping
-  if ( this.looping )
+  if( this.looping )
     setTimeout( ( function(scope) { return function() { scope.update(); }; } )(this), 40);
+}
+
+Widget.prototype.update_no_loop = function()
+{
+  var is_dirty = this.process();
+
+  if( is_dirty )
+  {
+    this.context.save();
+
+    this.render(this.context, 0, 0);
+
+    this.context.restore();
+
+    // reschedule if we're looping
+    if( this.get_root().loop_timer == null )
+      this.get_root().loop_timer = setTimeout( ( function(scope) { return function() { scope.update(); }; } )(this.get_root()), 40);
+  }
 }
