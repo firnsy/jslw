@@ -1,5 +1,5 @@
 /*
- * This file is part of the NSM framework
+ * This file is part of the JavaScript Lightweight Widget framework
  *
  * Copyright (C) 2010-2011, Ian Firns        <firnsy@securixlive.com>
  *
@@ -96,7 +96,7 @@ ListBox.prototype.mouse_drag_move = function(x, y)
     if( this.slider instanceof Widget )
       this.slider.bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider.bounds.h) / this.list_offset_max);
 
-    this.make_dirty();
+    this.set_dirty(true);
   }
 }
 

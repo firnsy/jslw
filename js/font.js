@@ -24,33 +24,19 @@
 //
 
 /*
- *     Converts INT to HEX
- *         If Prototype library is loaded, use theirs, else use ours.
- *         */
-Number.prototype.toColorPart = function()
-{
-  return ((this < 16 ? '0' : '') + this.toString(16));
-}
-
-/*
  *     Constructor
  *         @String c : hexadecimal, shorthand hex, or rgb()
  *             #returns : Object reference to instance or false
  *             */
-Color = function(c)
+Font = function(f, s, m)
 {
-  if( !c || !(c = Color.getFilteredObject(c)) )
+  if( !c || !(c = Font.getFilteredObject(c)) )
     return false;
 
-  this.original = c;
-  this.r = c.r;
-  this.g = c.g;
-  this.b = c.b;
-  this.a = 1.0;
-  this.check();
-  this.gray = Math.round(.3*this.r + .59*this.g + .11*this.b);
-  this.hex = this.getHex();
-  this.rgb = this.getRGB();
+  this.size = s;
+  this.family = f;
+  this.style = m;
+  this.font = this.getFont();
   return this;
 }
 
@@ -59,9 +45,9 @@ Color = function(c)
  *         @String str : hexadecimal, shorthand hex, or rgb()
  *             #returns : Object {r: XXX, g: XXX, b: XXX} or false
  *             */
-Color.getFilteredObject = function(str)
+Font.getFilteredObject = function(str)
 {
-  if( /^#?([\da-f]{3}|[\da-f]{6})$/i.test(str) )
+  if( /^([\d]+$/i.test(str) )
   {
     function _(s,i)
     {
@@ -86,22 +72,10 @@ Color.getFilteredObject = function(str)
  *         Resets out of range values.
  *             #returns : Object reference to instance
  *             */
-Color.prototype.check = function()
+Font.prototype.check = function()
 {
-  if( this.r>255 )
-    this.r=255;
-  else if( this.r<0 )
-    this.r=0;
-
-  if( this.g>255 )
-    this.g=255;
-  else if( this.g<0 )
-    this.g=0;
-
-  if( this.b>255 )
-    this.b=255;
-  else if( this.b<0 )
-    this.b=0;
+  if( this.size <= 0 )
+    this.size = 1;
 
   return this;
 }
@@ -110,7 +84,7 @@ Color.prototype.check = function()
  *     Resets color to the original color passed to the constructor.
  *         #returns : Object reference to instance
  *         */
-Color.prototype.revert = function()
+Font.prototype.revert = function()
 {
   this.r=this.original.r;
   this.g=this.original.g;
@@ -124,7 +98,7 @@ Color.prototype.revert = function()
  *         Black to White, vice versa
  *             #returns : Object reference to instance
  *             */
-Color.prototype.invert = function()
+Font.prototype.invert = function()
 {
   this.check();
   this.r = 255-this.r;
@@ -139,7 +113,7 @@ Color.prototype.invert = function()
  *         @Int amount : 1-254 -- RGB amount to lighten the color
  *             #returns : Object reference to instance
  *             */
-Color.prototype.lighten = function(amount)
+Font.prototype.lighten = function(amount)
 {
   var amount = parseInt(amount);
 
@@ -155,7 +129,7 @@ Color.prototype.lighten = function(amount)
  *         @Int amount : 1-254 -- RGB amount to darken the color
  *             #returns : Object reference to instance
  *             */
-Color.prototype.darken = function(amount)
+Font.prototype.darken = function(amount)
 {
   var amount = parseInt(amount);
 
@@ -170,7 +144,7 @@ Color.prototype.darken = function(amount)
  *     Converts the color to Grayscale
  *         #returns : Object reference to instance
  *         */
-Color.prototype.grayscale = function()
+Font.prototype.grayscale = function()
 {
   this.check();
   this.gray = Math.round(.3*this.r + .59*this.g + .11*this.b);
@@ -187,7 +161,7 @@ Color.prototype.grayscale = function()
  *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
  *                 #returns : String color
  *                 */
-Color.prototype.getLighter = function(amount, returnRGB)
+Font.prototype.getLighter = function(amount, returnRGB)
 {
   return this.lighten(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
 }
@@ -198,7 +172,7 @@ Color.prototype.getLighter = function(amount, returnRGB)
  *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
  *                 #returns : String color
  *                 */
-Color.prototype.getDarker = function(amount, returnRGB)
+Font.prototype.getDarker = function(amount, returnRGB)
 {
   return this.darken(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
 }
@@ -208,11 +182,11 @@ Color.prototype.getDarker = function(amount, returnRGB)
  *         @Bool returnRGB : true uses RGB return string, false uses HEX return string. 
  *             #returns : String color 
  *             */ 
-Color.prototype.getGrayscale = function(returnRGB)
+Font.prototype.getGrayscale = function(returnRGB)
 {
   this.grayscale();
 
-  return (returnRGB ? ('rgb('+this.gray+','+this.gray+','+this.gray+')') : this.gray.toColorPart().replace(/^([\da-f]{2})$/i, "#$1$1$1")); 
+  return (returnRGB ? ('rgb('+this.gray+','+this.gray+','+this.gray+')') : this.gray.toFontPart().replace(/^([\da-f]{2})$/i, "#$1$1$1")); 
 } 
 
 /*
@@ -220,7 +194,7 @@ Color.prototype.getGrayscale = function(returnRGB)
  *         @Bool returnRGB : true uses RGB return string, false uses HEX return string.
  *             #returns : String color
  *             */
-Color.prototype.getInverted = function(returnRGB)
+Font.prototype.getInverted = function(returnRGB)
 {
   return this.invert()[returnRGB ? 'getRGB' : 'getHex']();
 }
@@ -229,45 +203,15 @@ Color.prototype.getInverted = function(returnRGB)
  *     Gets the rgb(x,x,x) value of the color
  *         #returns : String rgb color
  *         */
-Color.prototype.getRGB = function()
+Font.prototype.getStyle = function()
 {
   this.check();
   this.rgb = 'rgb('+this.r+','+this.g+','+this.b+')';
 
-  return this.rgb;
+  return this.style = this.size + 'px ' + this.style + ' ' + this.family;
 }
 
-/*
- *     Gets the rgb(x,x,x) value of the color
- *         #returns : String rgb color
- *         */
-Color.prototype.getRGBA = function(alpha)
+Font.prototype.toString = function()
 {
-  alpha = alpha || this.alpha;
-
-  this.check();
-
-  return 'rgba('+this.r+','+this.g+','+this.b+','+alpha+')';
-}
-
-
-/*
- *     Gets the hex value of the color
- *         @Bool shorthandReturnAcceptable : true will return #333 instead of #333333
- *             #returns : String hex color
- *             */
-Color.prototype.getHex = function(shorthandReturnAcceptable)
-{
-  this.check();
-  this.hex = '#' + this.r.toColorPart() + this.g.toColorPart() + this.b.toColorPart();
-
-  if( shorthandReturnAcceptable )
-    return this.hex.replace(/^#([\da-f])\1([\da-f])\2([\da-f])\3$/i, "#$1$2$3");
-
-  return this.hex;
-}
-
-Color.prototype.toString = function()
-{
-  return '{r:' + this.r + ', g:' + this.g + ', b:' + this.b+ '}';
+  return '{family:' + this.family + ', size:' + this.size + ', style:' + this.style+ '}';
 }

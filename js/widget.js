@@ -1,5 +1,5 @@
 /*
- * This file is part of the NSM framework
+ * This file is part of the JavaScript Lightweight Widget framework
  *
  * Copyright (C) 2010-2011, Ian Firns        <firnsy@securixlive.com>
  *
@@ -23,17 +23,25 @@
 // IMPLEMENTATION
 //
 
-Widget = function(p, x, y, w, h, c)
+Widget = function(p, r, c)
 {
-  if( x instanceof Rect )
-    this.bounds = x;
+  this.set_parent(p);
+
+  if( ! ( r instanceof Rect ) )
+  {
+    console.error('Bounds for widget must be specified as a Rect');
+    return;
+  }
+  this.bounds = r;
+
+  if( c instanceof Color )
+    this.background_color = c;
   else
-    this.bounds = new Rect(x, y, w, h);
+    this.background_color = null;
 
   this.offset = new Vector2(0, 0);
-  this.background_color = null;
   this.background_image = null;
-  this.parent = p;
+;w
 
 
   // default member initialisation
@@ -47,6 +55,7 @@ Widget = function(p, x, y, w, h, c)
   this.text_alignment_vertical = 'middle';
 
   this.visible = true;
+  this.dirty = false;
   this.alpha = 1.0;
   this.clip = true;
 
@@ -71,10 +80,6 @@ Widget = function(p, x, y, w, h, c)
   this.loop_timer = null;
   this.canvas = null;
   this.context = null;
-
-  this.set_parent(p);
-
-  this.make_dirty();
 }
 
 
@@ -86,7 +91,7 @@ Widget.prototype.is_root = function()
 
 Widget.prototype.get_root = function()
 {
-  if( this.root )
+  if( this.root || ! ( this.parent instanceof Widget ) )
     return this;
 
   return this.parent.get_root();
@@ -95,7 +100,9 @@ Widget.prototype.get_root = function()
 
 Widget.prototype.set_root = function()
 {
-  // handles all
+  if( this.parent instanceof Widget )
+    console.warn('This widget has a parent.');
+
   this.root = true;
 }
 
@@ -116,7 +123,7 @@ Widget.prototype.set_canvas = function(canvas)
 
   var this_object = this;
 
-  // apply our handling routines
+  // apply our generic listener's to the canvas DOM
   canvas.addEventListener("mousedown", function(e){ this_object.mouse_listener(e, this_object, "mouse_down") }, false);
   canvas.addEventListener("mouseup", function(e){ this_object.mouse_listener(e, this_object, "mouse_up") }, false);
   canvas.addEventListener("mousemove", function(e){ this_object.mouse_listener(e, this_object, "mouse_move") }, false);
@@ -126,27 +133,21 @@ Widget.prototype.set_canvas = function(canvas)
 
 Widget.prototype.set_parent = function(p)
 {
-  // if we have an existing parent then remove child from it
-  if( this.p instanceof Widget )
-  {
-
-  }
-
-  // add to parent object if appropriate
+  // add widget as parent object if appropriate
   if( p instanceof Widget )
   {
-    this.p = p;
+    this.parent = p;
 
     p.add_child(this);
   }
-
 }
 
 
 Widget.prototype.add_child = function(c)
 {
   // add child to list of children
-  this.children.push(c);
+  if( c instanceof Widget )
+    this.children.push(c);
 }
 
 // VISIBILITY AND TRANSITION/ANIMATION
@@ -159,14 +160,14 @@ Widget.prototype.get_visibility = function()
 
 Widget.prototype.set_visibility = function(state)
 {
-  this.visible = state;
+  this.visible = ( state ) ? true : false;
 }
 
 
 Widget.prototype.hide = function()
 {
   this.visible = false;
-  this.make_dirty();
+  this.set_dirty(true);
 }
 
 
@@ -175,7 +176,7 @@ Widget.prototype.show = function()
   this.offset.set(0, 0);
   this.visible = true;
 
-  this.make_dirty();
+  this.set_dirty(true);
 }
 
 
@@ -189,6 +190,79 @@ Widget.prototype.slideToggle = function(d, s, cb)
   else
     this.slideIn(d, s, cb);
 }
+
+
+Widget.prototype.slideTo = function(o, s, cb)
+{
+  var offset = this.offset;
+
+  // check if the widget is already "in"
+  if( offset.x == 0 && offset.y == 0 )
+    return;
+
+  // set sane default direction
+  d = d || "left";
+
+  // set sane default speed
+  s = s || 1000;
+
+  // set sane callback
+  cb = cb || function() {};
+
+  // calculate number of frames to animate for
+  this.animate_frames = Math.ceil(s / 40);
+
+  var delta;
+
+  switch( d )
+  {
+    case "left":
+      delta = new Vector2(
+        Math.ceil(this.bounds.x2 / this.animate_frames),
+        0
+      );
+      break;
+    case "right":
+      delta = new Vector2(
+        -Math.ceil((this.parent.bounds.w - this.bounds.x) / this.animate_frames),
+        0
+      );
+      break;
+    case "up":
+      delta = new Vector2(
+        0,
+        Math.ceil(this.bounds.y2 / this.animate_frames)
+      );
+      break;
+    case "down":
+      delta = new Vector2(
+        0,
+        -Math.ceil((this.parent.bounds.h - this.bounds.y) / this.animate_frames)
+      );
+      break;
+    default:
+      return;
+  }
+
+  offset.set(delta.x, delta.y);
+  offset.scale(-this.animate_frames);
+  var to = this;
+
+  this.animate_cb = {
+    'process': function() {
+      offset.translate(delta);
+    },
+    'complete': function() {
+      cb();
+    }
+  };
+
+  this.animate = true;
+  this.animate_index = 0;
+  this.set_visibility(true);
+  this.set_dirty(true);
+}
+
 
 
 Widget.prototype.slideIn = function(d, s, cb)
@@ -260,7 +334,7 @@ Widget.prototype.slideIn = function(d, s, cb)
   this.animate = true;
   this.animate_index = 0;
   this.set_visibility(true);
-  this.make_dirty();
+  this.set_dirty(true);
 }
 
 
@@ -332,7 +406,7 @@ Widget.prototype.slideOut = function(d, s, cb)
   this.animate = true;
   this.animate_index = 0;
   this.set_visibility(true);
-  this.make_dirty();
+  this.set_dirty(true);
 }
 
 
@@ -380,7 +454,7 @@ Widget.prototype.fadeIn = function(s, cb)
   this.animate = true;
   this.animate_index = 0;
   this.set_visibility(true);
-  this.make_dirty();
+  this.set_dirty(true);
 }
 
 
@@ -419,7 +493,7 @@ Widget.prototype.fadeOut = function(s, cb)
   this.animate = true;
   this.animate_index = 0;
   this.set_visibility(true);
-  this.make_dirty();
+  this.set_dirty(true);
 }
 
 
@@ -433,8 +507,6 @@ Widget.prototype.set_text_alignment = function(mode_h, mode_v)
 
 Widget.prototype.set_text_alignment_horizontal = function(mode)
 {
-  mode = mode || 'center';
-
   switch( mode )
   {
     case 'center':
@@ -443,14 +515,13 @@ Widget.prototype.set_text_alignment_horizontal = function(mode)
       this.text_alignment_horizontal = mode;
       break;
     default:
-      this.text_alignment_horizontal = 'center';
+      console.error('Invalid alignment mode specified: ' + mode)
   }
 }
 
+
 Widget.prototype.set_text_alignment_vertical = function(mode)
 {
-  mode = mode || 'middle';
-
   switch( mode )
   {
     case 'top':
@@ -459,13 +530,15 @@ Widget.prototype.set_text_alignment_vertical = function(mode)
       this.text_alignment_vertical = mode;
       break;
     default:
-      this.text_alignment_vertical = 'middle';
+      console.error('Invalid alignment mode specified: ' + mode)
   }
 }
 
 
 Widget.prototype.set_caption = function(t)
 {
+  t = t || '';
+
   this.caption = t;
 }
 
@@ -495,7 +568,7 @@ Widget.prototype.set_background_image = function(i)
     this.background_image = i;
 
     if( i.src != '' && i.complete )
-      this.make_dirty();
+      this.set_dirty(true);
   }
   else
   {
@@ -505,7 +578,7 @@ Widget.prototype.set_background_image = function(i)
     this.background_image.onerror = function(){ alert("Unable to load image: " + this.src); };
 
     var self = this;
-    this.background_image.onload = function() { self.make_dirty(); };
+    this.background_image.onload = function() { self.set_dirty(true); };
   }
 }
 
@@ -604,12 +677,12 @@ Widget.prototype.mouse_process = function(x, y, a)
 
         this.is_pressed = false;
         this.is_dragged = false
-        this.make_dirty();
+        this.set_dirty(true);
         break;
 
       case 'mouse_down':
         this.is_pressed = true;
-        this.make_dirty();
+        this.set_dirty(true);
         break;
 
       case 'mouse_move':
@@ -659,7 +732,7 @@ Widget.prototype.mouse_process = function(x, y, a)
     }
     this.is_dragged = false
 
-    this.make_dirty();
+    this.set_dirty(true);
   }
 
   return handled;
@@ -687,19 +760,12 @@ Widget.prototype.mouse_drag_end = function(x, y) {}
 
 // PROCESS AND RENDERING
 
-Widget.prototype.make_dirty = function()
-{
-  this.dirty = true;
-
-  // this.get_root().update_no_loop();
-}
-
 Widget.prototype.set_dirty = function(s)
 {
   this.dirty = s;
 
   if( this.dirty )
-    this.get_root().update_no_loop();
+    this.get_root().update();
 }
 
 Widget.prototype.is_dirty = function()
@@ -850,40 +916,20 @@ Widget.prototype.render_caption = function(context)
   context.fillText(this.label, x, y);
 }
 
-Widget.prototype.loop_start = function()
+
+Widget.prototype.update = function(f)
 {
-  this.looping = true;
-  this.update();
-}
+  // call root parent if child
+  if( ! this.is_root() )
+    return this.get_root().update(f);
 
-Widget.prototype.loop_stop = function()
-{
-  this.looping = false;
-}
+  f = f || false;
 
-Widget.prototype.update = function()
-{
-  var is_dirty = this.process();
+  // skip the update if we have a pending update
+  if( this.loop_timer != null )
+    return;
 
-  if( is_dirty )
-  {
-    this.context.save();
-
-    this.render(this.context, 0, 0);
-
-    this.context.restore();
-  }
-
-  // reschedule if we're looping
-  if( this.looping )
-    setTimeout( ( function(scope) { return function() { scope.update(); }; } )(this), 40);
-}
-
-Widget.prototype.update_no_loop = function()
-{
-  var is_dirty = this.process();
-
-  if( is_dirty )
+  if( this.process() || f )
   {
     this.context.save();
 
@@ -892,7 +938,9 @@ Widget.prototype.update_no_loop = function()
     this.context.restore();
 
     // reschedule if we're looping
-    if( this.get_root().loop_timer == null )
-      this.get_root().loop_timer = setTimeout( ( function(scope) { return function() { scope.update(); }; } )(this.get_root()), 40);
+    var self = this;
+
+    if( this.loop_timer == null )
+      this.loop_timer = setTimeout( function(){ self.loop_timer = null; self.update(); }, 40);
   }
 }

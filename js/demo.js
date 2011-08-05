@@ -10,12 +10,18 @@ function demo()
 
 function demo_run()
 {
-  w = new Widget(null, 0, 0, 800, 480);
+  w = new Widget(null, new Rect(0, 0, 800, 480));
   w.set_root();
   w.set_canvas( $("#gui")[0] );
   w.set_background_color(new Color('rgb(128, 0, 0)'));
 
-  b2 = new ListBox(w, 150, 50, 500, 300);
+  b1 = new Widget(w, new Rect(10, 10, 40, 40));
+  b1.set_background_color(new Color('#00ff00'));
+
+  b11 = new Widget(w, new Rect(70, 10, 40, 40));
+  b11.set_background_color(new Color('#00ff00'));
+
+  b2 = new ListBox(w, new Rect(150, 50, 500, 300));
   b2.set_background_color(new Color('#007f7f'));
   b2.set_item_height(40);
   b2.set_font('24px sans-serif');
@@ -32,8 +38,9 @@ function demo_run()
   b2.add_item('item 9');
   b2.add_item('item 10');
 
-  w.loop_start();
+  // force update of all widgets
+  w.update(true);
 
-//  setTimeout(function() { b11.slideLeft() } , 2500);
-//  setTimeout(function() { b1.slideDown() } , 2750);
+ setTimeout(function() { b11.slideOut('right', 4000) } , 2500);
+ setTimeout(function() { b1.slideOut('down', 4000); } , 2750);
 }
