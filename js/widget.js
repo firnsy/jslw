@@ -41,8 +41,6 @@ Widget = function(p, r, c)
 
   this.offset = new Vector2(0, 0);
   this.background_image = null;
-;w
-
 
   // default member initialisation
   this.root = false;

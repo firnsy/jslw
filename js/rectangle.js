@@ -100,6 +100,7 @@ Rect.prototype.scale = function(s)
   // dimension shift
   this.w += (s + s);
   this.h += (s + s);
+
   return this;
 }
 
