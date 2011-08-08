@@ -34,13 +34,15 @@ TabMap = function(p, x, y, w, h, c)
 
   this.tabs = {};
   this.active_tab = '';
+  this.pressed_tab = '';
 
   // register callbacks
   this.register_callbacks(this);
 }
 
+TabMap.prototype = new Widget;
 
-TabMap.prototype.add_tab = function(t, r, i_up, i_down)
+TabMap.prototype.add_tab = function(t, r, i_active, i_overlay)
 {
   if( t in this.tabs )
   {
@@ -49,19 +51,19 @@ TabMap.prototype.add_tab = function(t, r, i_up, i_down)
   }
 
   this.tabs[t] = {
-    'image_up': null
-    'image_down': null
+    'image_active': null,
+    'image_overlay': null,
     'bounds': null
   }
 
   if( r )
-    this.set_tab_bounds(t, i);
+    this.set_tab_bounds(t, r);
 
-  if( i_up )
-    this.set_tab_image_up(t, i);
+  if( i_active )
+    this.set_tab_image_active(t, i_active);
 
-  if( i_down )
-    this.set_tab_image_down(t, i);
+  if( i_overlay )
+    this.set_tab_image_overlay(t, i_overlay);
 
   // set the activ tab to this if it's the first
   if( this.active_tab === '' )
@@ -86,7 +88,7 @@ TabMap.prototype.set_tab_bounds = function(t, r)
 }
 
 
-TabMap.prototype.set_tab_image_up = function(t, i)
+TabMap.prototype.set_tab_image_active = function(t, i)
 {
   if( ! ( t in this.tabs ) )
   {
@@ -96,25 +98,25 @@ TabMap.prototype.set_tab_image_up = function(t, i)
 
   if( i instanceof Image )
   {
-    this.tabs[t]['image'] = i;
+    this.tabs[t]['image_active'] = i;
 
     if( i.src != '' && i.complete )
-      this.make_dirty();
+      this.set_dirty(true);
   }
   else
   {
-    this.tabs[t]['image_up'] = new Image();
+    this.tabs[t]['image_active'] = new Image();
 
-    this.tabs[t]['image_up'].src = path;
-    this.tabs[t]['image_up'].onerror = function(){ console.error('Unable to load image: ' + this.src); };
+    this.tabs[t]['image_active'].src = i;
+    this.tabs[t]['image_active'].onerror = function(){ console.error('Unable to load image: ' + this.src); };
 
     var self = this;
-    this.tabs[t]['image_up'].onload = function() { self.make_dirty(); };
+    this.tabs[t]['image_active'].onload = function() { self.set_dirty(true); };
   }
 }
 
 
-TabMap.prototype.set_tab_image_down = function(t, i)
+TabMap.prototype.set_tab_image_overlay = function(t, i)
 {
   if( ! ( t in this.tabs ) )
   {
@@ -124,26 +126,29 @@ TabMap.prototype.set_tab_image_down = function(t, i)
 
   if( i instanceof Image )
   {
-    this.tabs[t]['image'] = i;
+    this.tabs[t]['image_overlay'] = i;
 
     if( i.src != '' && i.complete )
-      this.make_dirty();
+      this.set_dirty(true);
   }
   else
   {
-    this.tabs[t]['image_down'] = new Image();
+    this.tabs[t]['image_overlay'] = new Image();
 
-    this.tabs[t]['image_down'].src = path;
-    this.tabs[t]['image_down'].onerror = function(){ console.error('Unable to load image: ' + this.src); };
+    this.tabs[t]['image_overlay'].src = i;
+    this.tabs[t]['image_overlay'].onerror = function(){ console.error('Unable to load image: ' + this.src); };
 
     var self = this;
-    this.tabs[t]['image_down'].onload = function() { self.make_dirty(); };
+    this.tabs[t]['image_overlay'].onload = function() { self.set_dirty(true); };
   }
 }
 
 
 TabMap.prototype.mouse_down = function(x, y)
 {
+  x = x - this.bounds.x;
+  y = y - this.bounds.y;
+
   for( t in this.tabs )
   {
     var tab = this.tabs[t];
@@ -152,7 +157,7 @@ TabMap.prototype.mouse_down = function(x, y)
     {
       if( tab['bounds'].intersects(x, y) )
       {
-        this.background_image = this.tabs[t]['image_down'];
+        this.pressed_tab = t;
         this.set_dirty(true);
         return;
       }
@@ -162,6 +167,9 @@ TabMap.prototype.mouse_down = function(x, y)
 
 TabMap.prototype.mouse_up = function(x, y)
 {
+  x = x - this.bounds.x;
+  y = y - this.bounds.y;
+
   for( t in this.tabs )
   {
     var tab = this.tabs[t];
@@ -171,7 +179,6 @@ TabMap.prototype.mouse_up = function(x, y)
       if( tab['bounds'].intersects(x, y) )
       {
         this.active_tab = t;
-        this.background_image = this.tabs[t]['image_up'];
         this.set_dirty(true);
         return;
       }
@@ -179,4 +186,35 @@ TabMap.prototype.mouse_up = function(x, y)
   }
 }
 
+//
+// RENDERING
+
+TabMap.prototype.render_widget = function(context)
+{
+
+  if( this.background_color instanceof Color )
+  {
+    context.fillStyle = this.background_color.getRGBA(this.alpha);
+    context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+  }
+
+  // draw the background image
+  if( this.active_tab != '' &&
+      this.tabs[this.active_tab]['image_active'] instanceof Image &&
+      this.tabs[this.active_tab]['image_active'].width > 0 )
+  {
+    context.drawImage(this.tabs[this.active_tab]['image_active'], this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+  }
+
+  // draw the overlay if exists
+  if( this.is_pressed &&
+      this.pressed_tab != '' &&
+      this.tabs[this.pressed_tab]['image_overlay'] instanceof Image &&
+      this.tabs[this.pressed_tab]['image_overlay'].width > 0 )
+  {
+    context.drawImage(this.tabs[this.pressed_tab]['image_overlay'], this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+  }
+
+//  this.render_caption(context);
+}
 

@@ -1,5 +1,5 @@
 /*
- * This file is part of the NSM framework
+ * This file is part of the JavaScript Lightweight Widget framework
  *
  * Copyright (C) 2010-2011, Ian Firns        <firnsy@securixlive.com>
  *
@@ -26,8 +26,9 @@
 Button = function(p, x, y, w, h, c)
 {
   // call our super constructure
-  this.base = Widget;
-  this.base(p, x, y, w, h);
+//  this.base = Widget;
+//  this.base(p, x, y, w, h);
+  Widget.apply(this, arguments);
 
   this.image_overlay = null;
 
@@ -41,7 +42,7 @@ Button = function(p, x, y, w, h, c)
       '_default': {
         '_default': {
             'image': new Image(),
-            'bounds': new Rect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h),
+            'bounds': new Rect(this.bounds),
         }
       }
     }
@@ -51,7 +52,7 @@ Button = function(p, x, y, w, h, c)
   this.type_alignment_vertical = 'middle';
 
   // overlay
-  this.overlay = new Rect(x, y, w, h);
+  this.overlay = new Rect(this.bounds);
   this.overlay_alignment_horizontal = 'center';
   this.overlay_alignment_vertical = 'middle';
 
@@ -71,12 +72,12 @@ Button.prototype.set_image_overlay = function(path)
   this.image_overlay = new Image();
 
   this.image_overlay.src = path;
-  this.image_overlay.onerror = function(){ alert('Unable to load image: ' + this.src); };
+  this.image_overlay.onerror = function(){ console.error('Unable to load image: ' + this.src); };
 
   var this_object = this;
   this.image_overlay.onload = function() {
     this_object.overlay_calculate_offset();
-    this_object.make_dirty();
+    this_object.set_dirty(true);
   };
 
   // default image is up
@@ -182,7 +183,7 @@ Button.prototype.add_types = function(type)
       this.type_states['objects'][new_type] = {
         '_default': {
           'image': null,
-          'bounds': new Rect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h),
+          'bounds': new Rect(this.bounds),
           'animate': false
         }
       };
@@ -204,12 +205,12 @@ Button.prototype.set_active_type = function(type)
 
   if ( this.type_states['types'].indexOf(type) == -1 )
   {
-    alert("Type " + type + " is not available");
+    console.error('Type ' + type + ' is not available.');
     return;
   }
 
   this.type_states['active_type'] = type;
-  this.make_dirty();
+  this.set_dirty(true);
 }
 
 
@@ -229,7 +230,7 @@ Button.prototype.set_type_image_default = function(type, path)
   var this_object = this;
   this.type_states['objects'][type]['_default']['image'].onload = function() {
     this_object.type_calculate_offset(type);
-    this_object.make_dirty();
+    this_object.set_dirty(true);
   };
 }
 
@@ -245,7 +246,7 @@ Button.prototype.set_type_alignment_horizontal = function(type, mode)
 {
   if ( this.type_states['types'].indexOf(type) == -1 )
   {
-    alert("Type " + type + " is not available");
+    console.error('Type ' + type + ' is not available.');
     return;
   }
 
@@ -271,7 +272,7 @@ Button.prototype.set_type_alignment_vertical = function(mode)
 {
   if ( this.type_states['types'].indexOf(type) == -1 )
   {
-    alert("Type " + type + " is not available");
+    console.error('Type ' + type + ' is not available.');
     return;
   }
 
@@ -390,7 +391,7 @@ Button.prototype.set_active_state = function(state)
   }
 
   this.type_states['active_state'] = state;
-  this.make_dirty();
+  this.set_dirty(true);
 }
 
 
@@ -415,7 +416,7 @@ Button.prototype.set_state_image_default = function(state, path)
   var this_object = this;
   this.type_states['objects']['_default'][state]['image'].onload = function() {
     this_object.type_calculate_offset();
-    this_object.make_dirty();
+    this_object.set_dirty(true);
   };
 }
 
@@ -438,7 +439,7 @@ Button.prototype.set_type_state_image = function(type, state, path)
   {
     this.type_states['objects'][type][state] = {
       'image':  new Image(),
-      'bounds':  new Rect(0,0,0,0)
+      'bounds':  new Rect(0, 0, 0, 0)
     }
   }
 
@@ -450,7 +451,7 @@ Button.prototype.set_type_state_image = function(type, state, path)
   var this_object = this;
   this.type_states['objects'][type][state]['image'].onload = function() {
     this_object.type_calculate_offset(type);
-    this_object.make_dirty();
+    this_object.set_dirty(true);
   };
 }
 
@@ -463,7 +464,7 @@ Button.prototype.set_image_down = function(path)
   this.image_down.onerror = function(){ alert("Unable to load image: " + this.src); };
 
   var this_object = this;
-  this.image_down.onload = function() { this_object.make_dirty(); };
+  this.image_down.onload = function() { this_object.set_dirty(true); };
 }
 
 //

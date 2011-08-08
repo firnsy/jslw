@@ -25,6 +25,9 @@
 
 Widget = function(p, r, c)
 {
+  if( arguments.length == 0 )
+    return;
+
   this.set_parent(p);
 
   if( ! ( r instanceof Rect ) )
@@ -48,7 +51,7 @@ Widget = function(p, r, c)
 
   this.caption = '';
   this.font = '12px sans-serif';
-  this.font_color = new Color('#000000');
+  this.font_color = new Color('#000');
   this.text_alignment_horizontal = 'left';
   this.text_alignment_vertical = 'middle';
 
@@ -572,7 +575,7 @@ Widget.prototype.set_background_image = function(i)
   {
     this.background_image = new Image();
 
-    this.background_image.src = path;
+    this.background_image.src = i;
     this.background_image.onerror = function(){ alert("Unable to load image: " + this.src); };
 
     var self = this;
@@ -827,7 +830,8 @@ Widget.prototype.render = function(context, x, y)
   // offset the view (accounts for animations)
   context.translate(x + this.offset.x, y + this.offset.y);
 
-  context.globalAlpha = this.alpha;
+  if( this.alpha > 0 && this.alpha < 1 )
+    context.globalAlpha = this.alpha;
 
   // perform clipping as appropriate
   if( this.clip )
@@ -854,7 +858,7 @@ Widget.prototype.render_widget = function(context)
   // draw the widget
   if( this.background_color instanceof Color )
   {
-    context.fillStyle = this.background_color.getRGBA(Math.round(this.alpha * 255));
+    context.fillStyle = this.background_color.getRGBA(this.alpha);
     context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 
@@ -909,9 +913,9 @@ Widget.prototype.render_caption = function(context)
   context.font = this.font;
 
   if( this.font_color instanceof Color )
-    context.fillStyle = this.font_color.getRGBA(Math.round(this.alpha * 255));
+    context.fillStyle = this.font_color.getRGBA(this.alpha);
 
-  context.fillText(this.label, x, y);
+  context.fillText(this.caption, x, y);
 }
 
 

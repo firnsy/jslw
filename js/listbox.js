@@ -26,8 +26,9 @@
 ListBox = function(p, x, y, w, h, c)
 {
   // call our super constructure
-  this.base = Widget;
-  this.base(p, x, y, w, h);
+//  this.base = Widget;
+//  this.base(p, x, y, w, h);
+  Widget.apply(this, arguments);
 
   this.background_image_up = null;
   this.background_image_down = null;
@@ -188,8 +189,7 @@ ListBox.prototype.render_widget = function(context)
   }
 
   if( this.background_image instanceof Image &&
-      this.background_image.src != '' &&
-      this.background_image.complete )
+      this.background_image.width > 0 )
   {
     context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
@@ -198,7 +198,9 @@ ListBox.prototype.render_widget = function(context)
   context.font = this.font;
 
   if( this.font_color instanceof Color )
-    context.fillStyle = this.font_color.getRGBA(Math.round(this.alpha * 255));
+    context.fillStyle = this.font_color.getRGBA(this.alpha);
+    else
+      context.fillStyle = this.font_color.getRGB();
 
   var item_stride = Math.min(this.item_visible_count + 1, this.list.length);
   var item_y = this.item_bounds.y - (this.list_offset % this.item_height ) + (this.item_height / 2);
@@ -227,7 +229,7 @@ ListBox.prototype.render_widget = function(context)
       context.fillRect(this.item_bounds.x, item_y-(this.item_height / 2), this.item_bounds.w, this.item_height);
 
       if( this.active_font_color instanceof Color )
-        context.fillStyle = this.active_font_color.getRGBA(Math.round(this.alpha * 255));
+        context.fillStyle = this.active_font_color.getRGBA(this.alpha);
 
       context.fillText(item, this.item_bounds.x, item_y);
 

@@ -48,7 +48,7 @@ Font.getFilteredObject = function(str)
       bold: ( str[1] == 'bold' || str[2] == 'bold' ) ? true : false,
       italic: ( str[1] == 'italic' || str[2] == 'italic' ) ? true : false,
       size: parseInt(str[3]),
-      family: ( str[4] && str[4] != '' ) : str[4].split(',') : [ 'sans-serif' ] )
+      family: ( str[4] && str[4] != '' ) ? str[4].split(',') : [ 'sans-serif' ]
     };
   }
 
