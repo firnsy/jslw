@@ -39,7 +39,7 @@ Number.prototype.toColorPart = function()
  *             */
 Color = function(c)
 {
-  if( !c || !(c = Color.getFilteredObject(c)) )
+  if( !c || !(c = Color.get_filtered_object(c)) )
     return false;
 
   this.original = c;
@@ -48,9 +48,9 @@ Color = function(c)
   this.b = c.b;
   this.a = 1.0;
   this.check();
-  this.gray = Math.round(.3*this.r + .59*this.g + .11*this.b);
-  this.hex = this.getHex();
-  this.rgb = this.getRGB();
+  this.gray = Math.round(0.3*this.r + 0.59*this.g + 0.11*this.b);
+  this.hex = this.get_hex();
+  this.rgb = this.get_rgb();
   return this;
 }
 
@@ -59,7 +59,7 @@ Color = function(c)
  *         @String str : hexadecimal, shorthand hex, or rgb()
  *             #returns : Object {r: XXX, g: XXX, b: XXX} or false
  *             */
-Color.getFilteredObject = function(str)
+Color.get_filtered_object = function(str)
 {
   if( /^#?([\da-f]{3}|[\da-f]{6})$/i.test(str) )
   {
@@ -88,20 +88,20 @@ Color.getFilteredObject = function(str)
  *             */
 Color.prototype.check = function()
 {
-  if( this.r>255 )
-    this.r=255;
-  else if( this.r<0 )
-    this.r=0;
+  if( this.r > 255 )
+    this.r = 255;
+  else if( this.r < 0 )
+    this.r = 0;
 
-  if( this.g>255 )
-    this.g=255;
-  else if( this.g<0 )
-    this.g=0;
+  if( this.g > 255 )
+    this.g = 255;
+  else if( this.g < 0 )
+    this.g = 0;
 
-  if( this.b>255 )
-    this.b=255;
-  else if( this.b<0 )
-    this.b=0;
+  if( this.b > 255 )
+    this.b = 255;
+  else if( this.b < 0 )
+    this.b = 0;
 
   return this;
 }
@@ -112,9 +112,9 @@ Color.prototype.check = function()
  *         */
 Color.prototype.revert = function()
 {
-  this.r=this.original.r;
-  this.g=this.original.g;
-  this.b=this.original.b;
+  this.r = this.original.r;
+  this.g = this.original.g;
+  this.b = this.original.b;
 
   return this;
 }
@@ -127,9 +127,9 @@ Color.prototype.revert = function()
 Color.prototype.invert = function()
 {
   this.check();
-  this.r = 255-this.r;
-  this.g = 255-this.g;
-  this.b = 255-this.b;
+  this.r = 255 - this.r;
+  this.g = 255 - this.g;
+  this.b = 255 - this.b;
 
   return this;
 }
@@ -173,7 +173,7 @@ Color.prototype.darken = function(amount)
 Color.prototype.grayscale = function()
 {
   this.check();
-  this.gray = Math.round(.3*this.r + .59*this.g + .11*this.b);
+  this.gray = Math.round(0.3*this.r + 0.59*this.g + 0.11*this.b);
   this.r=this.gray;
   this.g=this.gray;
   this.b=this.gray;
@@ -187,7 +187,7 @@ Color.prototype.grayscale = function()
  *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
  *                 #returns : String color
  *                 */
-Color.prototype.getLighter = function(amount, returnRGB)
+Color.prototype.get_lighter = function(amount, returnRGB)
 {
   return this.lighten(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
 }
@@ -198,29 +198,29 @@ Color.prototype.getLighter = function(amount, returnRGB)
  *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
  *                 #returns : String color
  *                 */
-Color.prototype.getDarker = function(amount, returnRGB)
+Color.prototype.get_darker = function(amount, returnRGB)
 {
   return this.darken(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
 }
 
-/* 
- *     Convenience function for grayscaling color. 
- *         @Bool returnRGB : true uses RGB return string, false uses HEX return string. 
- *             #returns : String color 
- *             */ 
-Color.prototype.getGrayscale = function(returnRGB)
+/*
+ *     Convenience function for grayscaling color.
+ *         @Bool returnRGB : true uses RGB return string, false uses HEX return string.
+ *             #returns : String color
+ *             */
+Color.prototype.get_grayscale = function(returnRGB)
 {
   this.grayscale();
 
-  return (returnRGB ? ('rgb('+this.gray+','+this.gray+','+this.gray+')') : this.gray.toColorPart().replace(/^([\da-f]{2})$/i, "#$1$1$1")); 
-} 
+  return (returnRGB ? ('rgb('+this.gray+','+this.gray+','+this.gray+')') : this.gray.toColorPart().replace(/^([\da-f]{2})$/i, "#$1$1$1"));
+}
 
 /*
  *     Convenience function for inverting color.
  *         @Bool returnRGB : true uses RGB return string, false uses HEX return string.
  *             #returns : String color
  *             */
-Color.prototype.getInverted = function(returnRGB)
+Color.prototype.get_inverted = function(returnRGB)
 {
   return this.invert()[returnRGB ? 'getRGB' : 'getHex']();
 }
@@ -229,7 +229,7 @@ Color.prototype.getInverted = function(returnRGB)
  *     Gets the rgb(x,x,x) value of the color
  *         #returns : String rgb color
  *         */
-Color.prototype.getRGB = function()
+Color.prototype.get_rgb = function()
 {
   this.check();
   this.rgb = 'rgb('+this.r+','+this.g+','+this.b+')';
@@ -241,7 +241,7 @@ Color.prototype.getRGB = function()
  *     Gets the rgb(x,x,x) value of the color
  *         #returns : String rgb color
  *         */
-Color.prototype.getRGBA = function(alpha)
+Color.prototype.get_rgba = function(alpha)
 {
   alpha = alpha || this.alpha;
 
@@ -256,7 +256,7 @@ Color.prototype.getRGBA = function(alpha)
  *         @Bool shorthandReturnAcceptable : true will return #333 instead of #333333
  *             #returns : String hex color
  *             */
-Color.prototype.getHex = function(shorthandReturnAcceptable)
+Color.prototype.get_hex = function(shorthandReturnAcceptable)
 {
   this.check();
   this.hex = '#' + this.r.toColorPart() + this.g.toColorPart() + this.b.toColorPart();
@@ -266,6 +266,7 @@ Color.prototype.getHex = function(shorthandReturnAcceptable)
 
   return this.hex;
 }
+
 
 Color.prototype.toString = function()
 {

@@ -194,7 +194,7 @@ TabMap.prototype.render_widget = function(context)
 
   if( this.background_color instanceof Color )
   {
-    context.fillStyle = this.background_color.getRGBA(this.alpha);
+    context.fillStyle = this.background_color.get_rgba(this.alpha);
     context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 

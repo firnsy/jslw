@@ -25,7 +25,7 @@
 
 Font = function(f)
 {
-  if( !f || !(f = Font.getFilteredObject(f)) )
+  if( !f || !(f = Font.get_filtered_object(f)) )
     return false;
 
   this.size = f.size;
@@ -39,7 +39,7 @@ Font = function(f)
 }
 
 
-Font.getFilteredObject = function(str)
+Font.get_filtered_object = function(str)
 {
   if( /^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, ]+)$/i.test(str) )
   {

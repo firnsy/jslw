@@ -26,9 +26,8 @@
 ListBox = function(p, x, y, w, h, c)
 {
   // call our super constructure
-//  this.base = Widget;
-//  this.base(p, x, y, w, h);
-  Widget.apply(this, arguments);
+  this.base = Widget;
+  this.base(p, x, y, w, h);
 
   this.background_image_up = null;
   this.background_image_down = null;
@@ -41,6 +40,7 @@ ListBox = function(p, x, y, w, h, c)
   this.item_height = 20;
   this.item_bounds = new Rect(this.bounds);
   this.item_bounds.scale(-10);
+  this.active_font = this.font;
   this.active_font_color = new Color('#000');
   this.active_color = new Color('#fff');
 
@@ -153,6 +153,18 @@ ListBox.prototype.set_item_height = function(height)
 }
 
 
+ListBox.prototype.set_active_font = function(f)
+{
+  if( ! f instanceof Font )
+  {
+    console.log('ERROR: Must supply a Font object.');
+    return;
+  }
+
+  this.active_font = f;
+}
+
+
 ListBox.prototype.active_font_color = function(c)
 {
   if( ! c instanceof Color )
@@ -184,7 +196,7 @@ ListBox.prototype.render_widget = function(context)
   // draw the widget
   if( this.background_color instanceof Color )
   {
-    context.fillStyle = this.background_color.getRGB();
+    context.fillStyle = this.background_color.get_rgba(this.alpha);
     context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 
@@ -195,12 +207,10 @@ ListBox.prototype.render_widget = function(context)
   }
 
   context.textBaseline = 'middle';
-  context.font = this.font;
+  context.font = this.font.get_font();
 
   if( this.font_color instanceof Color )
-    context.fillStyle = this.font_color.getRGBA(this.alpha);
-    else
-      context.fillStyle = this.font_color.getRGB();
+    context.fillStyle = this.font_color.get_rgba(this.alpha);
 
   var item_stride = Math.min(this.item_visible_count + 1, this.list.length);
   var item_y = this.item_bounds.y - (this.list_offset % this.item_height ) + (this.item_height / 2);
@@ -223,13 +233,17 @@ ListBox.prototype.render_widget = function(context)
     {
       context.save();
 
+      // set active background decals and draw
       if( this.active_color instanceof Color )
-        context.fillStyle = this.active_color.getRGB();
+        context.fillStyle = this.active_color.get_rgba(this.alpha);
 
       context.fillRect(this.item_bounds.x, item_y-(this.item_height / 2), this.item_bounds.w, this.item_height);
 
+      // set active font decals and draw
+      context.font = this.active_font.get_font();
+
       if( this.active_font_color instanceof Color )
-        context.fillStyle = this.active_font_color.getRGBA(this.alpha);
+        context.fillStyle = this.active_font_color.get_rgba(this.alpha);
 
       context.fillText(item, this.item_bounds.x, item_y);
 

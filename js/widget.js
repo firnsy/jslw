@@ -50,7 +50,7 @@ Widget = function(p, r, c)
   this.children = [];
 
   this.caption = '';
-  this.font = '12px sans-serif';
+  this.font = new Font('12px sans-serif');
   this.font_color = new Color('#000');
   this.text_alignment_horizontal = 'left';
   this.text_alignment_vertical = 'middle';
@@ -546,6 +546,12 @@ Widget.prototype.set_caption = function(t)
 
 Widget.prototype.set_font = function(f)
 {
+  if( ! f instanceof Font )
+  {
+    console.log('ERROR: Must supply a Font object.');
+    return;
+  }
+
   this.font = f;
 }
 
@@ -858,7 +864,7 @@ Widget.prototype.render_widget = function(context)
   // draw the widget
   if( this.background_color instanceof Color )
   {
-    context.fillStyle = this.background_color.getRGBA(this.alpha);
+    context.fillStyle = this.background_color.get_rgba(this.alpha);
     context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 
@@ -910,10 +916,10 @@ Widget.prototype.render_caption = function(context)
       break;
   }
 
-  context.font = this.font;
+  context.font = this.font.get_font();
 
   if( this.font_color instanceof Color )
-    context.fillStyle = this.font_color.getRGBA(this.alpha);
+    context.fillStyle = this.font_color.get_rgba(this.alpha);
 
   context.fillText(this.caption, x, y);
 }
