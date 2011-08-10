@@ -36,6 +36,9 @@ TabMap = function(p, x, y, w, h, c)
   this.active_tab = '';
   this.pressed_tab = '';
 
+  // add tab specific events
+  this.valid_events.push['tab_click'];
+
   // register callbacks
   this.register_callbacks(this);
 }
@@ -100,7 +103,7 @@ TabMap.prototype.set_tab_image_active = function(t, i)
   {
     this.tabs[t]['image_active'] = i;
 
-    if( i.src != '' && i.complete )
+    if( i.src !== '' && i.complete )
       this.set_dirty(true);
   }
   else
@@ -128,7 +131,7 @@ TabMap.prototype.set_tab_image_overlay = function(t, i)
   {
     this.tabs[t]['image_overlay'] = i;
 
-    if( i.src != '' && i.complete )
+    if( i.src !== '' && i.complete )
       this.set_dirty(true);
   }
   else
@@ -174,17 +177,28 @@ TabMap.prototype.mouse_up = function(x, y)
   {
     var tab = this.tabs[t];
 
-    if( tab['bounds'] instanceof Rect )
+    // only need to check the tab which was initially pressed
+    if( tab === this.pressed_tab )
     {
       if( tab['bounds'].intersects(x, y) )
       {
         this.active_tab = t;
+        this.pressed_tab = '';
         this.set_dirty(true);
+
+        // invoke the tab_click callback with active tab as parameter
+        if( this.event_cb['system']['tab_click'] )
+          this.event_cb['system']['tab_click'](t)
+
         return;
       }
     }
   }
 }
+
+
+TabMap.prototype.tab_click = function(t) {}
+
 
 //
 // RENDERING
@@ -199,7 +213,7 @@ TabMap.prototype.render_widget = function(context)
   }
 
   // draw the background image
-  if( this.active_tab != '' &&
+  if( this.active_tab !== '' &&
       this.tabs[this.active_tab]['image_active'] instanceof Image &&
       this.tabs[this.active_tab]['image_active'].width > 0 )
   {
@@ -208,13 +222,13 @@ TabMap.prototype.render_widget = function(context)
 
   // draw the overlay if exists
   if( this.is_pressed &&
-      this.pressed_tab != '' &&
+      this.pressed_tab !== '' &&
       this.tabs[this.pressed_tab]['image_overlay'] instanceof Image &&
       this.tabs[this.pressed_tab]['image_overlay'].width > 0 )
   {
     context.drawImage(this.tabs[this.pressed_tab]['image_overlay'], this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
 
-//  this.render_caption(context);
+  this.render_caption(context);
 }
 

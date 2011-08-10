@@ -30,14 +30,14 @@
 Number.prototype.toColorPart = function()
 {
   return ((this < 16 ? '0' : '') + this.toString(16));
-}
+};
 
 /*
  *     Constructor
  *         @String c : hexadecimal, shorthand hex, or rgb()
  *             #returns : Object reference to instance or false
  *             */
-Color = function(c)
+function Color(c)
 {
   if( !c || !(c = Color.get_filtered_object(c)) )
     return false;
@@ -63,23 +63,23 @@ Color.get_filtered_object = function(str)
 {
   if( /^#?([\da-f]{3}|[\da-f]{6})$/i.test(str) )
   {
-    function _(s,i)
+    var _c = function(s,i)
     {
       return parseInt(s.substr(i,2), 16);
-    }
+    };
 
     str = str.replace(/^#/, '').replace(/^([\da-f])([\da-f])([\da-f])$/i, "$1$1$2$2$3$3");
 
-    return {r:_(str,0), g:_(str,2), b:_(str,4)}
+    return {r:_c(str,0), g:_c(str,2), b:_c(str,4)};
   }
   else if( /^rgb *\( *\d{0,3} *, *\d{0,3} *, *\d{0,3} *\)$/i.test(str) ) {
     str = str.match(/^rgb *\( *(\d{0,3}) *, *(\d{0,3}) *, *(\d{0,3}) *\)$/i);
 
-    return {r:parseInt(str[1]), g:parseInt(str[2]), b:parseInt(str[3])};
+    return {r:parseInt(str[1], 10), g:parseInt(str[2], 10), b:parseInt(str[3], 10)};
   }
 
   return false;
-}
+};
 
 /*
  *     Checks the internal RGB registers for out of range values.
@@ -104,7 +104,7 @@ Color.prototype.check = function()
     this.b = 0;
 
   return this;
-}
+};
 
 /*
  *     Resets color to the original color passed to the constructor.
@@ -117,7 +117,7 @@ Color.prototype.revert = function()
   this.b = this.original.b;
 
   return this;
-}
+};
 
 /*
  *     Inverts the color.
@@ -132,7 +132,7 @@ Color.prototype.invert = function()
   this.b = 255 - this.b;
 
   return this;
-}
+};
 
 /*
  *     Lightens the color.
@@ -141,14 +141,14 @@ Color.prototype.invert = function()
  *             */
 Color.prototype.lighten = function(amount)
 {
-  var amount = parseInt(amount);
+  amount = parseInt(amount, 10);
 
   this.r += amount;
   this.g += amount;
   this.b += amount;
 
   return this;
-}
+};
 
 /*
  *     Darkens the color.
@@ -157,14 +157,14 @@ Color.prototype.lighten = function(amount)
  *             */
 Color.prototype.darken = function(amount)
 {
-  var amount = parseInt(amount);
+  amount = parseInt(amount, 10);
 
   this.r -= amount;
   this.g -= amount;
   this.b -= amount;
 
   return this;
-}
+};
 
 /*
  *     Converts the color to Grayscale
@@ -179,7 +179,7 @@ Color.prototype.grayscale = function()
   this.b=this.gray;
 
   return this;
-}
+};
 
 /*
  *     Convenience function for lightening color.
@@ -190,7 +190,7 @@ Color.prototype.grayscale = function()
 Color.prototype.get_lighter = function(amount, returnRGB)
 {
   return this.lighten(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
-}
+};
 
 /*
  *     Convenience function for darkening color.
@@ -201,7 +201,7 @@ Color.prototype.get_lighter = function(amount, returnRGB)
 Color.prototype.get_darker = function(amount, returnRGB)
 {
   return this.darken(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
-}
+};
 
 /*
  *     Convenience function for grayscaling color.
@@ -213,7 +213,7 @@ Color.prototype.get_grayscale = function(returnRGB)
   this.grayscale();
 
   return (returnRGB ? ('rgb('+this.gray+','+this.gray+','+this.gray+')') : this.gray.toColorPart().replace(/^([\da-f]{2})$/i, "#$1$1$1"));
-}
+};
 
 /*
  *     Convenience function for inverting color.
@@ -223,7 +223,7 @@ Color.prototype.get_grayscale = function(returnRGB)
 Color.prototype.get_inverted = function(returnRGB)
 {
   return this.invert()[returnRGB ? 'getRGB' : 'getHex']();
-}
+};
 
 /*
  *     Gets the rgb(x,x,x) value of the color
@@ -235,7 +235,7 @@ Color.prototype.get_rgb = function()
   this.rgb = 'rgb('+this.r+','+this.g+','+this.b+')';
 
   return this.rgb;
-}
+};
 
 /*
  *     Gets the rgb(x,x,x) value of the color
@@ -248,7 +248,7 @@ Color.prototype.get_rgba = function(alpha)
   this.check();
 
   return 'rgba('+this.r+','+this.g+','+this.b+','+alpha+')';
-}
+};
 
 
 /*
@@ -265,10 +265,10 @@ Color.prototype.get_hex = function(shorthandReturnAcceptable)
     return this.hex.replace(/^#([\da-f])\1([\da-f])\2([\da-f])\3$/i, "#$1$2$3");
 
   return this.hex;
-}
+};
 
 
 Color.prototype.toString = function()
 {
   return '{r:' + this.r + ', g:' + this.g + ', b:' + this.b+ '}';
-}
+};

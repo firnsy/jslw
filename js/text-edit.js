@@ -28,21 +28,6 @@ TextEdit = function(p, x, y, w, h, c)
   // call our super constructure
   this.base = Widget;
   this.base(p, x, y, w, h);
-
-  this.background_image_up = null;
-  this.background_image_down = null;
-
-  var this_object = this;
-  this.cb = {
-    "mouse_down": function() {
-      this_object.background_image = this_object.background_image_down;
-      this_object.make_dirty();
-    },
-    "mouse_up": function() {
-      this_object.background_image = this_object.background_image_up;
-      this_object.make_dirty();
-    }
-  };
 }
 
 TextEdit.prototype.add_event_listener = function(a, cb)

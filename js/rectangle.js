@@ -23,7 +23,7 @@
 // IMPLEMENTATION
 //
 
-Rect = function(x, y, w, h)
+function Rect(x, y, w, h)
 {
   this.set(x, y, w, h);
 
@@ -53,7 +53,7 @@ Rect.prototype.set = function(x, y, w, h)
   }
 
   return this;
-}
+};
 
 
 Rect.prototype.translate = function(x, y)
@@ -80,7 +80,7 @@ Rect.prototype.translate = function(x, y)
   }
 
   return this;
-}
+};
 
 
 Rect.prototype.scale = function(s)
@@ -102,7 +102,7 @@ Rect.prototype.scale = function(s)
   this.h += (s + s);
 
   return this;
-}
+};
 
 
 Rect.prototype.intersects = function(x, y)
@@ -116,10 +116,10 @@ Rect.prototype.intersects = function(x, y)
 
   return ( x >= this.x && x <= this.x2 &&
            y >= this.y && y <= this.y2 );
-}
+};
 
 
 Rect.prototype.toString = function()
 {
   return '{x:' + this.x + ', y:' + this.y + ', w:' + this.w + ', h:' + this.h + '}';
-}
+};

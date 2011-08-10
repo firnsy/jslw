@@ -23,7 +23,7 @@
 // IMPLEMENTATION
 //
 
-Vector2 = function(x, y)
+function Vector2(x, y)
 {
   this.set(x, y);
 }
@@ -44,7 +44,7 @@ Vector2.prototype.set = function(x, y)
   }
 
   return this;
-}
+};
 
 
 Vector2.prototype.translate = function(x, y)
@@ -62,7 +62,7 @@ Vector2.prototype.translate = function(x, y)
   }
 
   return this;
-}
+};
 
 
 Vector2.prototype.scale = function(s)
@@ -71,10 +71,10 @@ Vector2.prototype.scale = function(s)
   this.y *= s;
 
   return this;
-}
+};
 
 
 Vector2.prototype.toString = function()
 {
   return '{x:' + this.x + ', y:' + this.y + '}';
-}
+};

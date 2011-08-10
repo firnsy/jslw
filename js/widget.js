@@ -23,7 +23,7 @@
 // IMPLEMENTATION
 //
 
-Widget = function(p, r, c)
+function Widget(p, r, c)
 {
   if( arguments.length == 0 )
     return;
@@ -35,6 +35,7 @@ Widget = function(p, r, c)
     console.error('Bounds for widget must be specified as a Rect');
     return;
   }
+
   this.bounds = r;
 
   if( c instanceof Color )
@@ -65,6 +66,16 @@ Widget = function(p, r, c)
   this.animate_function = null;
 
   // event callbacks
+  this.valid_events = [
+    'mouse_up',
+    'mouse_down',
+    'mouse_click',
+    'mouse_move',
+    'mouse_drag_start',
+    'mouse_drag_move',
+    'mouse_drag_end''
+  ];
+
   this.event_cb = {
     'system': {},
     'user': {}
@@ -607,20 +618,13 @@ Widget.prototype.set_background_color = function(c)
 
 Widget.prototype.add_event_listener = function(a, cb)
 {
-  switch( a )
+  if( this.valid_event.indexOf(a) === -1 )
   {
-    case "mouse_down":
-    case "mouse_up":
-    case "mouse_move":
-    case "mouse_click":
-    case "mouse_drag_start":
-    case "mouse_drag_move":
-    case "mouse_drag_end":
-      this.event_cb['user'][a] = cb;
-      break;
-    default:
-      console.log('WARN: Unknown event type supplied: ' + a);
+    console.log('WARN: Invalid event type supplied: ' + a);
+    return;
   }
+
+  this.event_cb['user'][a] = cb;
 }
 
 
@@ -718,7 +722,7 @@ Widget.prototype.mouse_process = function(x, y, a)
         break;
     }
 
-    // TODO: remove when event propogation is controllable
+    // TODO: remove when event bubbling/propogation is controllable
     handled = true;
   }
   // cancel a mouse down if mouse_up occured out of widget
@@ -726,7 +730,7 @@ Widget.prototype.mouse_process = function(x, y, a)
            ( a == 'mouse_up' || a == 'mouse_out' ) )
   {
     // mouse_click event does NOT occur when event closes out of widget
-    this.is_pressed = false
+    this.is_pressed = false;
 
     // mouse_drag_end event DOES occur when event closes out of widget
     if( this.is_dragged )
@@ -737,8 +741,8 @@ Widget.prototype.mouse_process = function(x, y, a)
       if( this.event_cb['user']['mouse_drag_end'] )
         this.event_cb['user']['mouse_drag_end'](x, y);
     }
-    this.is_dragged = false
 
+    this.is_dragged = false;
     this.set_dirty(true);
   }
 

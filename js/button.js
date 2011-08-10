@@ -23,11 +23,11 @@
 // IMPLEMENTATION
 //
 
-Button = function(p, x, y, w, h, c)
+function Button(p, r, c)
 {
   // call our super constructure
   this.base = Widget;
-  this.base(p, x, y, w, h);
+  this.base(p, r, c);
 
   this.image_overlay = null;
 
@@ -63,7 +63,7 @@ Button = function(p, x, y, w, h, c)
 }
 
 
-Button.prototype = new Widget;
+Button.prototype = new Widget();
 
 
 Button.prototype.set_image_overlay = function(path)

@@ -25,7 +25,7 @@
 
 Array.prototype.remove = function()
 {
-  var a = arguments
+  var a = arguments;
   var l = a.length;
   var i;
   var x;
@@ -39,7 +39,7 @@ Array.prototype.remove = function()
   }
 
   return this;
-}
+};
 
 
 //
@@ -67,6 +67,6 @@ if( ! Array.prototype.indexOf )
     }
 
     return -1;
-  }
+  };
 }
 

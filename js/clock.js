@@ -23,7 +23,7 @@
 // IMPLEMENTATION
 //
 
-Clock = function(p, x, y, w, h, c)
+function Clock(p, x, y, w, h, c)
 {
   // call our super constructure
   this.base = Widget;
@@ -38,12 +38,12 @@ Clock = function(p, x, y, w, h, c)
 }
 
 
-Clock.prototype = new Widget;
+Clock.prototype = new Widget();
 
 
 Clock.prototype.set_interval = function(t)
 {
-  t = parseInt(t);
+  t = parseInt(t, 10);
 
   if( t > 0 )
     this.time_interval = t * 1000;
