@@ -26,7 +26,10 @@
 function Font(f)
 {
   if( !f || !(f = Font.get_filtered_object(f)) )
+  {
+    console.error('Invalid font object definition!');
     return false;
+  }
 
   this.size = f.size;
   this.family = f.family;
@@ -41,9 +44,9 @@ function Font(f)
 
 Font.get_filtered_object = function(str)
 {
-  if( /^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, ]+)$/i.test(str) )
+  if( /^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i.test(str) )
   {
-    str = str.match(/^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, ]+)$/i);
+    str = str.match(/^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i);
     return {
       bold: ( str[1] === 'bold' || str[2] === 'bold' ) ? true : false,
       italic: ( str[1] === 'italic' || str[2] === 'italic' ) ? true : false,

@@ -37,7 +37,7 @@ TabMap = function(p, x, y, w, h, c)
   this.pressed_tab = '';
 
   // add tab specific events
-  this.valid_events.push['tab_click'];
+  this.valid_events.push('tab_click');
 
   // register callbacks
   this.register_callbacks(this);
@@ -178,7 +178,7 @@ TabMap.prototype.mouse_up = function(x, y)
     var tab = this.tabs[t];
 
     // only need to check the tab which was initially pressed
-    if( tab === this.pressed_tab )
+    if( t === this.pressed_tab )
     {
       if( tab['bounds'].intersects(x, y) )
       {
@@ -187,8 +187,8 @@ TabMap.prototype.mouse_up = function(x, y)
         this.set_dirty(true);
 
         // invoke the tab_click callback with active tab as parameter
-        if( this.event_cb['system']['tab_click'] )
-          this.event_cb['system']['tab_click'](t)
+        if( this.event_cb['tab_click'] )
+          this.event_cb['tab_click'](t)
 
         return;
       }

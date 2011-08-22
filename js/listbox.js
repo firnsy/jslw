@@ -165,7 +165,7 @@ ListBox.prototype.set_active_font = function(f)
 }
 
 
-ListBox.prototype.active_font_color = function(c)
+ListBox.prototype.set_active_font_color = function(c)
 {
   if( ! c instanceof Color )
   {
@@ -177,7 +177,7 @@ ListBox.prototype.active_font_color = function(c)
 }
 
 
-ListBox.prototype.active_color = function(c)
+ListBox.prototype.set_active_color = function(c)
 {
   if( ! c instanceof Color )
   {
@@ -185,7 +185,7 @@ ListBox.prototype.active_color = function(c)
     return;
   }
 
-  this.active_style = c;
+  this.active_color = c;
 }
 
 

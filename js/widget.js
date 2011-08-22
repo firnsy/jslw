@@ -25,7 +25,7 @@
 
 function Widget(p, r, c)
 {
-  if( arguments.length == 0 )
+  if( arguments.length === 0 )
     return;
 
   this.set_parent(p);
@@ -60,6 +60,9 @@ function Widget(p, r, c)
   this.dirty = false;
   this.alpha = 1.0;
   this.clip = true;
+  this.scale = 1.0;
+
+  this.anim = [];
 
   this.animate = false;
   this.animate_frames = 0;
@@ -73,13 +76,10 @@ function Widget(p, r, c)
     'mouse_move',
     'mouse_drag_start',
     'mouse_drag_move',
-    'mouse_drag_end''
+    'mouse_drag_end'
   ];
 
-  this.event_cb = {
-    'system': {},
-    'user': {}
-  }
+  this.event_cb = {};
 
   // event state
   this.is_pressed = false;
@@ -98,7 +98,7 @@ function Widget(p, r, c)
 Widget.prototype.is_root = function()
 {
   return this.root;
-}
+};
 
 
 Widget.prototype.get_root = function()
@@ -107,7 +107,7 @@ Widget.prototype.get_root = function()
     return this;
 
   return this.parent.get_root();
-}
+};
 
 
 Widget.prototype.set_root = function()
@@ -116,7 +116,17 @@ Widget.prototype.set_root = function()
     console.warn('This widget has a parent.');
 
   this.root = true;
-}
+};
+
+
+Widget.prototype.set_scale = function(s)
+{
+  if( s <= 0 )
+    console.warn('Scale must a positive real number.');
+
+  this.scale = s;
+};
+
 
 
 Widget.prototype.set_canvas = function(canvas)
@@ -133,14 +143,18 @@ Widget.prototype.set_canvas = function(canvas)
   this.canvas = canvas;
   this.context = context;
 
-  var this_object = this;
+  var self = this;
 
   // apply our generic listener's to the canvas DOM
-  canvas.addEventListener("mousedown", function(e){ this_object.mouse_listener(e, this_object, "mouse_down") }, false);
-  canvas.addEventListener("mouseup", function(e){ this_object.mouse_listener(e, this_object, "mouse_up") }, false);
-  canvas.addEventListener("mousemove", function(e){ this_object.mouse_listener(e, this_object, "mouse_move") }, false);
-  canvas.addEventListener("mouseout", function(e){ this_object.mouse_listener(e, this_object, "mouse_out") }, false);
-}
+  canvas.addEventListener("touchstart", function(e){ self.touch_listener(e, self, 'mouse_down') }, false);
+  canvas.addEventListener("touchmove", function(e){ self.touch_listener(e, self, 'mouse_move') }, false);
+  canvas.addEventListener("touchend", function(e){ self.touch_listener(e, self, 'mouse_end') }, false);
+  canvas.addEventListener("touchcancel", function(e){ self.touch_listener(e, self, 'mouse_end') }, false);
+  canvas.addEventListener("mousedown", function(e){ self.mouse_listener(e, self, 'mouse_down') }, false);
+  canvas.addEventListener("mouseup", function(e){ self.mouse_listener(e, self, 'mouse_up') }, false);
+  canvas.addEventListener("mousemove", function(e){ self.mouse_listener(e, self, "mouse_move") }, false);
+  canvas.addEventListener("mouseout", function(e){ self.mouse_listener(e, self, "mouse_out") }, false);
+};
 
 
 Widget.prototype.set_parent = function(p)
@@ -152,7 +166,7 @@ Widget.prototype.set_parent = function(p)
 
     p.add_child(this);
   }
-}
+};
 
 
 Widget.prototype.add_child = function(c)
@@ -160,27 +174,27 @@ Widget.prototype.add_child = function(c)
   // add child to list of children
   if( c instanceof Widget )
     this.children.push(c);
-}
+};
 
 // VISIBILITY AND TRANSITION/ANIMATION
 
 Widget.prototype.get_visibility = function()
 {
   return this.visible;
-}
+};
 
 
 Widget.prototype.set_visibility = function(state)
 {
   this.visible = ( state ) ? true : false;
-}
+};
 
 
 Widget.prototype.hide = function()
 {
   this.visible = false;
   this.set_dirty(true);
-}
+};
 
 
 Widget.prototype.show = function()
@@ -189,7 +203,7 @@ Widget.prototype.show = function()
   this.visible = true;
 
   this.set_dirty(true);
-}
+};
 
 
 Widget.prototype.slideToggle = function(d, s, cb)
@@ -197,11 +211,11 @@ Widget.prototype.slideToggle = function(d, s, cb)
   var offset = this.offset;
 
   // check if the widget is "in"
-  if( offset.x == 0 && offset.y == 0 )
+  if( offset.x === 0 && offset.y === 0 )
     this.slideOut(d, s, cb);
   else
     this.slideIn(d, s, cb);
-}
+};
 
 
 Widget.prototype.slideTo = function(o, s, cb)
@@ -209,7 +223,7 @@ Widget.prototype.slideTo = function(o, s, cb)
   var offset = this.offset;
 
   // check if the widget is already "in"
-  if( offset.x == 0 && offset.y == 0 )
+  if( offset.x === 0 && offset.y === 0 )
     return;
 
   // set sane default direction
@@ -273,7 +287,7 @@ Widget.prototype.slideTo = function(o, s, cb)
   this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
-}
+};
 
 
 
@@ -282,7 +296,7 @@ Widget.prototype.slideIn = function(d, s, cb)
   var offset = this.offset;
 
   // check if the widget is already "in"
-  if( offset.x == 0 && offset.y == 0 )
+  if( offset.x === 0 && offset.y === 0 )
     return;
 
   // set sane default direction
@@ -347,7 +361,7 @@ Widget.prototype.slideIn = function(d, s, cb)
   this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
-}
+};
 
 
 Widget.prototype.slideOut = function(d, s, cb)
@@ -355,7 +369,7 @@ Widget.prototype.slideOut = function(d, s, cb)
   var offset = this.offset;
 
   // check if we the widget is already "out"
-  if( offset.x != 0 && offset.y != 0 )
+  if( offset.x !== 0 || offset.y !== 0 )
     return;
 
   // set sane default direction
@@ -419,23 +433,23 @@ Widget.prototype.slideOut = function(d, s, cb)
   this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
-}
+};
 
 
 Widget.prototype.fadeToggle = function(s, cb)
 {
   // check if the widget is "faded in"
-  if( this.alpha == 0 )
+  if( this.alpha === 0 )
     this.fadeIn(s, cb);
   else
     this.fadeOut(s, cb);
-}
+};
 
 
 Widget.prototype.fadeIn = function(s, cb)
 {
   // check if we the widget is already "out"
-  if( this.alpha == 1 &&
+  if( this.alpha === 1 &&
       this.visibile )
     return;
 
@@ -467,13 +481,13 @@ Widget.prototype.fadeIn = function(s, cb)
   this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
-}
+};
 
 
 Widget.prototype.fadeOut = function(s, cb)
 {
   // check if we the widget is already "out"
-  if( this.alpha == 0 ||
+  if( this.alpha === 0 ||
       ! this.visible )
     return;
 
@@ -506,7 +520,7 @@ Widget.prototype.fadeOut = function(s, cb)
   this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
-}
+};
 
 
 // STYLING
@@ -514,7 +528,7 @@ Widget.prototype.set_text_alignment = function(mode_h, mode_v)
 {
   this.set_text_alignment_horizontal(mode_h);
   this.set_text_alignment_vertical(mode_v);
-}
+};
 
 
 Widget.prototype.set_text_alignment_horizontal = function(mode)
@@ -529,7 +543,7 @@ Widget.prototype.set_text_alignment_horizontal = function(mode)
     default:
       console.error('Invalid alignment mode specified: ' + mode)
   }
-}
+};
 
 
 Widget.prototype.set_text_alignment_vertical = function(mode)
@@ -544,7 +558,7 @@ Widget.prototype.set_text_alignment_vertical = function(mode)
     default:
       console.error('Invalid alignment mode specified: ' + mode)
   }
-}
+};
 
 
 Widget.prototype.set_caption = function(t)
@@ -552,7 +566,7 @@ Widget.prototype.set_caption = function(t)
   t = t || '';
 
   this.caption = t;
-}
+};
 
 
 Widget.prototype.set_font = function(f)
@@ -581,7 +595,7 @@ Widget.prototype.set_font_color = function(c)
 
 Widget.prototype.set_background_image = function(i)
 {
-  if( i instanceof Image )
+  if( i instanceof HTMLImageElement )
   {
     this.background_image = i;
 
@@ -618,20 +632,29 @@ Widget.prototype.set_background_color = function(c)
 
 Widget.prototype.add_event_listener = function(a, cb)
 {
-  if( this.valid_event.indexOf(a) === -1 )
+  if( this.valid_events.indexOf(a) === -1 )
   {
     console.log('WARN: Invalid event type supplied: ' + a);
     return;
   }
 
-  this.event_cb['user'][a] = cb;
+  this.event_cb[a] = cb;
 }
 
 
 Widget.prototype.mouse_listener = function(e, o, a)
 {
-  x = e.pageX - o.canvas.offsetLeft;
-  y = e.pageY - o.canvas.offsetLeft;
+  var x = (e.pageX - o.canvas.offsetLeft) / this.scale;
+  var y = (e.pageY - o.canvas.offsetTop) / this.scale;
+
+  o.mouse_process(x, y, a);
+}
+
+Widget.prototype.touch_listener = function(e, o, a)
+{
+  var touch = e.touches[0];
+  var x = (touch.pageX - o.canvas.offsetLeft) / this.scale;
+  var y = (touch.pageY - o.canvas.offsetTop) / this.scale;
 
   o.mouse_process(x, y, a);
 }
@@ -654,13 +677,13 @@ Widget.prototype.mouse_process = function(x, y, a)
 
   if( ! handled && this.bounds.intersects(x,y) )
   {
-    // do user call back
-    if( this.event_cb['system'][a] )
-      handled |= this.event_cb['system'][a](x, y);
+    // do system call back
+    if( typeof this[a] === 'function' )
+      handled |= this[a](x, y);
 
     // do user call back
-    if( this.event_cb['user'][a] )
-      handled |= this.event_cb['user'][a](x, y);
+    if( typeof this.event_cb[a] === 'function' )
+      handled |= this.event_cb[a](x, y);
 
     // do correlated actions (eg click)
     switch( a )
@@ -670,19 +693,17 @@ Widget.prototype.mouse_process = function(x, y, a)
         {
           if( this.is_dragged )
           {
-            if( this.event_cb['system']['mouse_drag_end'] )
-              this.event_cb['system']['mouse_drag_end'](x, y);
+            this.mouse_drag_end(x, y);
 
-            if( this.event_cb['user']['mouse_drag_end'] )
-              this.event_cb['user']['mouse_drag_end'](x, y);
+            if( this.event_cb['mouse_drag_end'] )
+              this.event_cb['mouse_drag_end'](x, y);
           }
           else
           {
-            if( this.event_cb['system']['mouse_click'] )
-              this.event_cb['system']['mouse_click'](x, y);
+            this.mouse_click(x, y);
 
-            if( this.event_cb['user']['mouse_click'] )
-              this.event_cb['user']['mouse_click'](x, y);
+            if( this.event_cb['mouse_click'] )
+              this.event_cb['mouse_click'](x, y);
           }
         }
 
@@ -693,30 +714,31 @@ Widget.prototype.mouse_process = function(x, y, a)
 
       case 'mouse_down':
         this.is_pressed = true;
+        this.pressed_x = x;
+        this.pressed_y = y;
         this.set_dirty(true);
         break;
 
       case 'mouse_move':
         if( this.is_pressed )
         {
+          var x_delta = Math.abs(x - this.pressed_x);
+          var y_delta = Math.abs(y - this.pressed_y);
           if( this.is_dragged )
           {
-            if( this.event_cb['system']['mouse_drag_move'] )
-              this.event_cb['system']['mouse_drag_move'](x, y);
+            this.mouse_drag_move(x, y);
 
-            if( this.event_cb['user']['mouse_drag_move'] )
-              this.event_cb['user']['mouse_drag_move'](x, y);
+            if( this.event_cb['mouse_drag_move'] )
+              this.event_cb['mouse_drag_move'](x, y);
 
           }
-          else
+          else if( x_delta > 20 || y_delta > 20 )
           {
             this.is_dragged = true;
+            this.mouse_drag_start(x, y);
 
-            if( this.event_cb['system']['mouse_drag_start'] )
-              this.event_cb['system']['mouse_drag_start'](x, y);
-
-            if( this.event_cb['user']['mouse_drag_start'] )
-              this.event_cb['user']['mouse_drag_start'](x, y);
+            if( this.event_cb['mouse_drag_start'] )
+              this.event_cb['mouse_drag_start'](x, y);
           }
         }
         break;
@@ -735,11 +757,10 @@ Widget.prototype.mouse_process = function(x, y, a)
     // mouse_drag_end event DOES occur when event closes out of widget
     if( this.is_dragged )
     {
-      if( this.event_cb['system']['mouse_drag_end'] )
-        this.event_cb['system']['mouse_drag_end'](x, y);
+      this.mouse_drag_end(x, y);
 
-      if( this.event_cb['user']['mouse_drag_end'] )
-        this.event_cb['user']['mouse_drag_end'](x, y);
+      if( this.event_cb['mouse_drag_end'] )
+        this.event_cb['mouse_drag_end'](x, y);
     }
 
     this.is_dragged = false;
@@ -751,13 +772,6 @@ Widget.prototype.mouse_process = function(x, y, a)
 
 Widget.prototype.register_callbacks = function(o)
 {
-  this.event_cb['system']['mouse_down'] = ( function(scope){ return function(x, y) { scope.mouse_down(x, y); }; } )(o);
-  this.event_cb['system']['mouse_up'] = ( function(scope){ return function(x, y) { scope.mouse_up(x, y); }; } )(o);
-  this.event_cb['system']['mouse_click'] = ( function(scope){ return function(x, y) { scope.mouse_click(x, y); }; } )(o);
-  this.event_cb['system']['mouse_move'] = ( function(scope){ return function(x, y) { scope.mouse_move(x, y); }; } )(o);
-  this.event_cb['system']['mouse_drag_start'] = ( function(scope){ return function(x, y) { scope.mouse_drag_start(x, y); }; } )(o);
-  this.event_cb['system']['mouse_drag_move'] = ( function(scope){ return function(x, y) { scope.mouse_drag_move(x, y); }; } )(o);
-  this.event_cb['system']['mouse_drag_end'] = ( function(scope){ return function(x, y) { scope.mouse_drag_end(x, y); }; } )(o);
 }
 
 Widget.prototype.mouse_up = function(x, y) {}
@@ -807,10 +821,10 @@ Widget.prototype.process = function()
 
     if( this.animate_index >= this.animate_frames )
     {
+      this.animate = false;
+
       if( 'complete' in this.animate_cb )
         this.animate_cb['complete']();
-
-      this.animate = false;
     }
 
     this.dirty = true;
@@ -944,6 +958,8 @@ Widget.prototype.update = function(f)
   if( this.process() || f )
   {
     this.context.save();
+
+    this.context.scale(this.scale, this.scale);
 
     this.render(this.context, 0, 0);
 

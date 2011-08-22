@@ -29,8 +29,6 @@ function Button(p, r, c)
   this.base = Widget;
   this.base(p, r, c);
 
-  this.image_overlay = null;
-
   // stores type and states of button
   this.type_states = {
     'types': ['_default'],
@@ -41,7 +39,8 @@ function Button(p, r, c)
       '_default': {
         '_default': {
             'image': new Image(),
-            'bounds': new Rect(this.bounds)
+            'bounds': new Rect(this.bounds),
+            'animate': false
         }
       }
     }
@@ -51,36 +50,44 @@ function Button(p, r, c)
   this.type_alignment_vertical = 'middle';
 
   // overlay
-  this.overlay = new Rect(this.bounds);
+  this.overlay = null;
   this.overlay_alignment_horizontal = 'center';
   this.overlay_alignment_vertical = 'middle';
+  this.overlay_image = null;
 
   // turn of clipping to handle the overlay
   this.clip = false;
-
-  var this_object = this;
-  this.cb = {};
 }
 
 
 Button.prototype = new Widget();
 
 
-Button.prototype.set_image_overlay = function(path)
+Button.prototype.set_overlay_image = function(i)
 {
-  this.image_overlay = new Image();
+  if( i instanceof Image )
+  {
+    this.overlay_image = i;
 
-  this.image_overlay.src = path;
-  this.image_overlay.onerror = function(){ console.error('Unable to load image: ' + this.src); };
+    if( i.complete && i.width > 0 )
+    {
+      this.overlay_calculate_offset();
+      this.set_dirty(true);
+    }
+  }
+  else
+  {
+    this.overlay_image = new Image();
 
-  var this_object = this;
-  this.image_overlay.onload = function() {
-    this_object.overlay_calculate_offset();
-    this_object.set_dirty(true);
-  };
+    this.overlay_image.src = i;
+    this.overlay_image.onerror = function(){ console.error('Unable to load image: ' + this.src); };
 
-  // default image is up
-//  this.image = this.image_up;
+    var self = this;
+    this.overlay_image.onload = function() {
+      self.overlay_calculate_offset();
+      self.set_dirty(true);
+    };
+  }
 }
 
 
@@ -133,10 +140,16 @@ Button.prototype.set_overlay_alignment_vertical = function(type)
 // TODO: Private
 Button.prototype.overlay_calculate_offset = function()
 {
-  this.overlay.x = this.bounds.x;
-  this.overlay.y = this.bounds.y;
-  this.overlay.w = this.image_overlay.width || this.overlay.w;
-  this.overlay.h = this.image_overlay.height || this.overlay.h;
+  if( this.overlay == null )
+    this.overlay = new Rect(this.bounds);
+  else
+  {
+    this.overlay.x = this.bounds.x;
+    this.overlay.y = this.bounds.y;
+  }
+
+  this.overlay.w = this.overlay_image.width || this.overlay.w;
+  this.overlay.h = this.overlay_image.height || this.overlay.h;
 
   // horizontal alignment
   switch( this.overlay_alignment_horizontal )
@@ -209,28 +222,45 @@ Button.prototype.set_active_type = function(type)
   }
 
   this.type_states['active_type'] = type;
+
+  var ts = this.type_states['objects'][type][this.type_states['active_state']];
+  this.animate = (ts instanceof Object && 'animate' in ts ) ? ts.animate : false;
+
   this.set_dirty(true);
 }
 
 
-Button.prototype.set_type_image_default = function(type, path)
+Button.prototype.set_type_image_default = function(type, i)
 {
   if ( this.type_states['types'].indexOf(type) == -1 )
   {
-    alert("Type " + type + " is not available");
+    console.warn("Type " + type + " is not available");
     return;
   }
 
-  this.type_states['objects'][type]['_default']['image'] = new Image();
+  if( i instanceof Image )
+  {
+    this.type_states['objects'][type]['_default']['image'] = i;
 
-  this.type_states['objects'][type]['_default']['image'].src = path;
-  this.type_states['objects'][type]['_default']['image'].onerror = function(){ alert("Unable to load image: " + this.src); };
+    if( i.complete && i.width > 0 )
+    {
+      this.type_calculate_offset();
+      this.set_dirty(true);
+    }
+  }
+  else
+  {
+    this.type_states['objects'][type]['_default']['image'] = new Image();
 
-  var this_object = this;
-  this.type_states['objects'][type]['_default']['image'].onload = function() {
-    this_object.type_calculate_offset(type);
-    this_object.set_dirty(true);
-  };
+    this.type_states['objects'][type]['_default']['image'].src = path;
+    this.type_states['objects'][type]['_default']['image'].onerror = function(){ console.warn("Unable to load image: " + this.src); };
+
+    var self = this;
+    this.type_states['objects'][type]['_default']['image'].onload = function() {
+      self.type_calculate_offset(type);
+      self.set_dirty(true);
+    };
+  }
 }
 
 
@@ -293,7 +323,7 @@ Button.prototype.set_type_alignment_vertical = function(mode)
 }
 
 
-// TODO: Private
+// TODO: PRIVATE
 Button.prototype.type_calculate_offset = function(types)
 {
   // resize all types if no type defined
@@ -339,7 +369,7 @@ Button.prototype.type_calculate_offset = function(types)
           break;
       }
 
-      // middle alignment
+      // vertical alignment
       switch( this.type_alignment_vertical )
       {
         case 'middle':
@@ -385,51 +415,103 @@ Button.prototype.set_active_state = function(state)
 
   if ( this.type_states['states'].indexOf(state) == -1 )
   {
-    alert("State " + state + " is not available");
+    console.warn("State " + state + " is not available");
     return;
   }
 
   this.type_states['active_state'] = state;
+
+  var ts = this.type_states['objects'][this.type_states['active_type']][state];
+  this.animate = (ts instanceof Object && 'animate' in ts ) ? ts.animate : false;
+
   this.set_dirty(true);
 }
 
 
-Button.prototype.set_state_image_default = function(state, path)
+Button.prototype.set_state_image_default = function(state, i)
 {
   if ( this.type_states['states'].indexOf(state) == -1 )
   {
-    alert('State "' + state + '" is not available');
+    console.warn('State "' + state + '" is not available');
     return;
   }
 
   // add default image for types
   this.type_states['objects']['_default'][state] = {
-    'image': new Image(),
     'bounds': new Rect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h),
     'animate': false
   };
 
-  this.type_states['objects']['_default'][state]['image'].src = path;
-  this.type_states['objects']['_default'][state]['image'].onerror = function(){ alert("Unable to load image: " + this.src); };
+  if( i instanceof Image )
+  {
+    this.type_states['objects']['_default'][state]['image'] = i;
 
-  var this_object = this;
-  this.type_states['objects']['_default'][state]['image'].onload = function() {
-    this_object.type_calculate_offset();
-    this_object.set_dirty(true);
-  };
-}
+    if( i.complete && i.width > 0 )
+    {
+      this.type_calculate_offset();
+      this.set_dirty(true);
+    }
+  }
+  else
+  {
+    this.type_states['objects']['_default'][state]['image'] = new Image(),
 
 
-Button.prototype.set_type_state_image = function(type, state, path)
+    this.type_states['objects']['_default'][state]['image'].src = i;
+    this.type_states['objects']['_default'][state]['image'].onerror = function(){ console.warn("Unable to load image: " + this.src); };
+
+    var self = this;
+    this.type_states['objects']['_default'][state]['image'].onload = function() {
+      self.type_calculate_offset();
+      self.set_dirty(true);
+    };
+  }
+};
+
+
+Button.prototype.set_state_image_animate = function(state, t, l)
+{
+  if ( this.type_states['states'].indexOf(state) == -1 )
+  {
+    console.warn('State "' + state + '" is not available');
+    return;
+  }
+
+  this.animate_frames = Math.ceil(1000 / 40);
+  this.animate = true;
+  this.animate_index = 0;
+
+  console.log(this.animate_frames);
+
+  var ts = this.type_states['objects']['_default'][state];
+  ts['animate'] = true;
+  ts['animate_bounds'] = new Rect(0, 0, this.bounds.w, this.bounds.h);
+
+  var self = this;
+
+  this.animate_cb = {
+    'process': function() {
+      ts['animate_bounds'].y = (ts['animate_bounds'].y + 88) % 704;
+        console.log(ts['animate_bounds'].y);
+    },
+    'complete': function() {
+      self.animate = true;
+      self.animate_index = 0;
+    }
+  }
+};
+
+
+Button.prototype.set_type_state_image = function(type, state, i)
 {
   if ( this.type_states['types'].indexOf(type) == -1 )
   {
-    alert("Type " + type + " is not available");
+    console.warn("Type " + type + " is not available");
     return;
   }
   else if ( this.type_states['states'].indexOf(state) == -1 )
   {
-    alert("State " + state + " is not available");
+    console.warn("State " + state + " is not available");
     return;
   }
 
@@ -437,21 +519,35 @@ Button.prototype.set_type_state_image = function(type, state, path)
   if ( ! this.type_states['objects'][type][state] )
   {
     this.type_states['objects'][type][state] = {
-      'image':  new Image(),
+      'image':  null,
       'bounds':  new Rect(0, 0, 0, 0)
     }
   }
 
-//  this.type_states['objects'][type][state]['image'] = new Image();
+  if( i instanceof Image )
+  {
+    this.type_states['objects'][type][state]['image'] = i;
 
-  this.type_states['objects'][type][state]['image'].src = path;
-  this.type_states['objects'][type][state]['image'].onerror = function(){ alert('Unable to load image: ' + this.src); };
+    if( i.complete && i.width > 0 )
+    {
+      this.type_calculate_offset();
+      this.set_dirty(true);
+    }
+  }
+  else
+  {
+    if( this.type_states['objects'][type][state]['image'] == null )
+      this.type_states['objects'][type][state]['image'] = new Image();
 
-  var this_object = this;
-  this.type_states['objects'][type][state]['image'].onload = function() {
-    this_object.type_calculate_offset(type);
-    this_object.set_dirty(true);
-  };
+    this.type_states['objects'][type][state]['image'].src = i;
+    this.type_states['objects'][type][state]['image'].onerror = function(){ console.warn('Unable to load image: ' + this.src); };
+
+    var self = this;
+    this.type_states['objects'][type][state]['image'].onload = function() {
+      self.type_calculate_offset(type);
+      self.set_dirty(true);
+    };
+  }
 }
 
 
@@ -460,10 +556,10 @@ Button.prototype.set_image_down = function(path)
   this.image_down = new Image();
 
   this.image_down.src = path;
-  this.image_down.onerror = function() { alert("Unable to load image: " + this.src); };
+  this.image_down.onerror = function() { console.warn('Unable to load image: ' + this.src); };
 
-  var this_object = this;
-  this.image_down.onload = function() { this_object.set_dirty(true); };
+  var self = this;
+  this.image_down.onload = function() { self.set_dirty(true); };
 }
 
 //
@@ -480,8 +576,7 @@ Button.prototype.render_widget = function(context)
 
   // draw the background image
   if( this.background_image instanceof Image &&
-      this.background_image.src != '' &&
-      this.background_image.complete )
+      this.background_image.width > 0 )
   {
     context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
   }
@@ -504,25 +599,51 @@ Button.prototype.render_widget = function(context)
         state = '_default';
     }
 
-    if( 'image' in this.type_states['objects'][type][state] &&
-        this.type_states['objects'][type][state]['image'].src != '' &&
-        this.type_states['objects'][type][state]['image'].complete )
+    var ts = this.type_states['objects'][type][state];
+
+    if( 'image' in ts &&
+        ts['image'] instanceof Image &&
+        ts['image'].width > 0 )
     {
-      context.drawImage(this.type_states['objects'][type][state]['image'],
-                        this.type_states['objects'][type][state]['bounds'].x,
-                        this.type_states['objects'][type][state]['bounds'].y,
-                        this.type_states['objects'][type][state]['bounds'].w,
-                        this.type_states['objects'][type][state]['bounds'].h);
+      // TODO: optimise this hack out (introduced due to late loading of images via the cache)
+      if( ts['bounds'].w === 0 )
+        this.type_calculate_offset();
+
+      if( 'animate_bounds' in ts )
+      {
+        console.log("tt" + ts['animate_bounds'].y);
+        context.drawImage(ts['image'],
+                          ts['animate_bounds'].x,
+                          ts['animate_bounds'].y,
+                          ts['animate_bounds'].w,
+                          ts['animate_bounds'].h,
+                          ts['bounds'].x,
+                          ts['bounds'].y,
+                          ts['bounds'].w,
+                          ts['bounds'].h);
+      }
+      else
+      {
+        context.drawImage(ts['image'],
+                          ts['bounds'].x,
+                          ts['bounds'].y,
+                          ts['bounds'].w,
+                          ts['bounds'].h);
+      }
     }
   }
 
   // draw the overlay if exists
   if( this.is_pressed &&
-      this.image_overlay instanceof Image &&
-      this.image_overlay.src != '' &&
-      this.image_overlay.complete )
+      this.overlay_image instanceof Image &&
+      this.overlay_image.src != '' &&
+      this.overlay_image.complete )
   {
-    context.drawImage(this.image_overlay, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
+    // TODO: optimise this hack out (introduced due to late loading of images via the cache)
+    if( this.overlay == null )
+      this.overlay_calculate_offset();
+
+    context.drawImage(this.overlay_image, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
   }
 
 

@@ -23,7 +23,7 @@
 // IMPLEMENTATION
 //
 
-ImageCache = function()
+function ImageCache()
 {
   this.cache = {};
   this.count_total = 0;
@@ -35,7 +35,7 @@ ImageCache = function()
 }
 
 
-ImageCache.prototype.add_image(k, p, f)
+ImageCache.prototype.add_image = function(k, p, f)
 {
   if( k in this.cache )
   {
@@ -51,7 +51,7 @@ ImageCache.prototype.add_image(k, p, f)
 
   this.cache[k] = {
     source: p,
-    image: null,
+    image: new Image(),
     loaded: false
   }
 
@@ -61,27 +61,28 @@ ImageCache.prototype.add_image(k, p, f)
   {
     var self = this;
 
-    this.cache[k]['image'] = new Image();
     this.cache[k]['image'].src = p;
-    this.cache[k]['image'].onload = function() {
-      self.image_loaded(k);
-    }
+    this.cache[k]['image'].onload = function(key) {
+      return function() {
+        self.image_loaded(key);
+      }
+    }(k)
   }
 
   return this.cache[k]['image'];
-}
+};
 
 
-ImageCache.get_image = function(k)
+ImageCache.prototype.get_image = function(k)
 {
-  if( ! k in this.cache )
+  if( ! ( k in this.cache ) )
   {
-    console.error('Key ' + k + ' is not available.');
+    console.warn('Key ' + k + ' is not available.');
     return;
   }
 
   return this.cache[k]['image'];
-}
+};
 
 
 ImageCache.prototype.load_all = function(cb_on_loaded, cb_on_load, cb_on_error)
@@ -101,21 +102,25 @@ ImageCache.prototype.load_all = function(cb_on_loaded, cb_on_load, cb_on_error)
   // build up all image objects and populate
   for( k in this.cache )
   {
-    if( ! this.cache[k].image instanceof Image )
+    if( this.cache[k]['image'].src !== this.cache[k]['source'] )
     {
       var self = this;
 
-      this.cache[k]['image'] = new Image();
       this.cache[k]['image'].src = this.cache[k]['source'];
-      this.cache[k]['image'].onload = function() {
-        self.image_loaded(k);
-      }
-      this.cache[k]['image'].onerror = function() {
-        self.image_error(k);
-      }
+      this.cache[k]['image'].onload = function(key) {
+        return function() {
+          self.image_loaded(key);
+        }
+      }(k);
+
+      this.cache[k]['image'].onerror = function(key) {
+        return function() {
+          self.image_error(key);
+        }
+      }(k);
     }
   }
-}
+};
 
 
 ImageCache.prototype.image_loaded = function(k)
@@ -131,12 +136,12 @@ ImageCache.prototype.image_loaded = function(k)
   this.count_loaded++;
 
   // fire the on_load callback with total progress passed
-  this.on_load(100 * this.count_loaded / this.count_total);
+  this.cb_on_load(100 * this.count_loaded / this.count_total);
 
   // fire the on_loaded callback when all images are loaded
   if( this.count_loaded === this.count_total )
-    this.on_loaded();
-}
+    this.cb_on_loaded();
+};
 
 
 ImageCache.prototype.image_error = function(k)
@@ -148,5 +153,5 @@ ImageCache.prototype.image_error = function(k)
   }
 
   // fire the on_error callback with total progress passed
-  this.on_error();
-}
+  this.cb_on_error();
+};
