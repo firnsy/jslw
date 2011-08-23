@@ -17,7 +17,8 @@ urlencode()
 
 BASE_PATH=${0}
 
-JSLW_COMPONENTS="js/array.js \
+JSLW_COMPONENTS="js/core.js \
+js/array.js \
 js/button.js \
 js/clock.js \
 js/color.js \
@@ -56,14 +57,6 @@ done
 #echo ${URL_ENCODED}
 
 # minimise
-#curl -s \
-#     -d compilation_level=SIMPLE_OPTIMIZATIONS \
-#     -d output_format=text \
-#     -d output_info=compiled_code \
-#     --data-urlencode "js_code@${IN}" \
-#     http://closure-compiler.appspot.com/compile
-#     > ${JSLW_REDUCED_MIN}
-
 echo "/*
  * This file is part of the JavaScript Lightweight Widget framework
  *
@@ -85,6 +78,16 @@ echo "/*
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 " > ${JSLW_REDUCED_MIN}
+
+
+#curl -s \
+#     -d compilation_level=SIMPLE_OPTIMIZATIONS \
+#     -d output_format=text \
+#     -d output_info=compiled_code \
+#     --data-urlencode "js_code@${IN}" \
+#     http://closure-compiler.appspot.com/compile
+#     >> ${JSLW_REDUCED_MIN}
+
 # obfuscate
 
 

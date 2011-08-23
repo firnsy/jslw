@@ -62,11 +62,8 @@ function Widget(p, r, c)
   this.clip = true;
   this.scale = 1.0;
 
-  this.anim = [];
-
-  this.animate = false;
-  this.animate_frames = 0;
-  this.animate_function = null;
+  // animate stack
+  this.animate = [];
 
   // event callbacks
   this.valid_events = [
@@ -230,13 +227,16 @@ Widget.prototype.slideTo = function(o, s, cb)
   d = d || "left";
 
   // set sane default speed
-  s = s || 1000;
+  s = parseInt(s);
+  if( s === 0 || s === 'NaN' )
+    s = 1000;
 
   // set sane callback
-  cb = cb || function() {};
+  if( typeof cb !== 'function' )
+    cb = function() {};
 
   // calculate number of frames to animate for
-  this.animate_frames = Math.ceil(s / 40);
+  var animate_frames = Math.ceil(s / ANIMATE_FRAME_TIME_SPACING);
 
   var delta;
 
@@ -244,47 +244,47 @@ Widget.prototype.slideTo = function(o, s, cb)
   {
     case "left":
       delta = new Vector2(
-        Math.ceil(this.bounds.x2 / this.animate_frames),
+        Math.ceil(this.bounds.x2 / animate_frames),
         0
       );
       break;
     case "right":
       delta = new Vector2(
-        -Math.ceil((this.parent.bounds.w - this.bounds.x) / this.animate_frames),
+        -Math.ceil((this.parent.bounds.w - this.bounds.x) / animate_frames),
         0
       );
       break;
     case "up":
       delta = new Vector2(
         0,
-        Math.ceil(this.bounds.y2 / this.animate_frames)
+        Math.ceil(this.bounds.y2 / animate_frames)
       );
       break;
     case "down":
       delta = new Vector2(
         0,
-        -Math.ceil((this.parent.bounds.h - this.bounds.y) / this.animate_frames)
+        -Math.ceil((this.parent.bounds.h - this.bounds.y) / animate_frames)
       );
       break;
     default:
       return;
   }
 
-  offset.set(delta.x, delta.y);
-  offset.scale(-this.animate_frames);
-  var to = this;
+  offset.set(delta);
+  offset.scale(-animate_frames);
 
-  this.animate_cb = {
-    'process': function() {
+  this.animate.push({
+    frames:   animate_frames,
+    index:    0,
+    loop:     false,
+    process:  function() {
       offset.translate(delta);
     },
-    'complete': function() {
+    complete: function() {
       cb();
     }
-  };
+  });
 
-  this.animate = true;
-  this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
 };
@@ -303,13 +303,16 @@ Widget.prototype.slideIn = function(d, s, cb)
   d = d || "left";
 
   // set sane default speed
-  s = s || 1000;
+  s = parseInt(s);
+  if( s === 0 || s === 'NaN' )
+    s = 1000;
 
   // set sane callback
-  cb = cb || function() {};
+  if( typeof cb !== 'function' )
+    cb = function() {};
 
   // calculate number of frames to animate for
-  this.animate_frames = Math.ceil(s / 40);
+  var animate_frames = Math.ceil(s / ANIMATE_FRAME_TIME_SPACING);
 
   var delta;
 
@@ -317,48 +320,48 @@ Widget.prototype.slideIn = function(d, s, cb)
   {
     case "left":
       delta = new Vector2(
-        Math.ceil(this.bounds.x2 / this.animate_frames),
+        Math.ceil(this.bounds.x2 / animate_frames),
         0
       );
       break;
     case "right":
       delta = new Vector2(
-        -Math.ceil((this.parent.bounds.w - this.bounds.x) / this.animate_frames),
+        -Math.ceil((this.parent.bounds.w - this.bounds.x) / animate_frames),
         0
       );
       break;
     case "up":
       delta = new Vector2(
         0,
-        Math.ceil(this.bounds.y2 / this.animate_frames)
+        Math.ceil(this.bounds.y2 / animate_frames)
       );
       break;
     case "down":
       delta = new Vector2(
         0,
-        -Math.ceil((this.parent.bounds.h - this.bounds.y) / this.animate_frames)
+        -Math.ceil((this.parent.bounds.h - this.bounds.y) / animate_frames)
       );
       break;
     default:
       return;
   }
 
-  offset.set(delta.x, delta.y);
-  offset.scale(-this.animate_frames);
-  var to = this;
+  offset.set(delta);
+  offset.scale(-animate_frames);
 
-  this.animate_cb = {
-    'process': function() {
+  // push this animation on the animate stack
+  this.animate.push({
+    frames:   animate_frames,
+    index:    0,
+    loop:     false,
+    process:  function() {
       offset.translate(delta);
     },
-    'complete': function() {
+    complete: function() {
       cb();
     }
-  };
+  });
 
-
-  this.animate = true;
-  this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
 };
@@ -376,13 +379,16 @@ Widget.prototype.slideOut = function(d, s, cb)
   d = d || "left";
 
   // set sane default speed
-  s = s || 1000;
+  s = parseInt(s);
+  if( s === 0 || s === 'NaN' )
+    s = 1000;
 
   // set sane callback
-  cb = cb || function() {};
+  if( typeof cb !== 'function' )
+    cb = function() {};
 
   // calculate number of frames to animate for
-  this.animate_frames = s / 20;
+  var animate_frames = Math.ceil(s / ANIMATE_FRAME_TIME_SPACING);
 
   var delta;
 
@@ -390,47 +396,48 @@ Widget.prototype.slideOut = function(d, s, cb)
   {
     case "left":
       delta = new Vector2(
-        -Math.ceil(this.bounds.x2 / this.animate_frames),
+        -Math.ceil(this.bounds.x2 / animate_frames),
         0
       );
       break;
     case "right":
       delta = new Vector2(
-        Math.ceil((this.parent.bounds.w - this.bounds.x) / this.animate_frames),
+        Math.ceil((this.parent.bounds.w - this.bounds.x) / animate_frames),
         0
       );
       break;
     case "up":
       delta = new Vector2(
         0,
-        -Math.ceil(this.bounds.y2 / this.animate_frames)
+        -Math.ceil(this.bounds.y2 / animate_frames)
       );
       break;
     case "down":
       delta = new Vector2(
         0,
-        Math.ceil((this.parent.bounds.h - this.bounds.y) / this.animate_frames)
+        Math.ceil((this.parent.bounds.h - this.bounds.y) / animate_frames)
       );
       break;
     default:
       return;
   }
 
-  var to = this;
+  offset.set(delta);
+  offset.scale(s);
 
-  this.animate_cb = {
-    'process': function() {
+  // push this animation on the animate stack
+  this.animate.push({
+    frames:   animate_frames,
+    index:    0,
+    loop:     false,
+    process:  function() {
       offset.translate(delta);
     },
-    'complete': function() {
-      to.alpha = 0;
-      to.set_visibility(false);
+    complete: function() {
       cb();
     }
-  };
+  });
 
-  this.animate = true;
-  this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
 };
@@ -448,7 +455,7 @@ Widget.prototype.fadeToggle = function(s, cb)
 
 Widget.prototype.fadeIn = function(s, cb)
 {
-  // check if we the widget is already "out"
+  // check if the widget has fully faded in
   if( this.alpha === 1 &&
       this.visibile )
     return;
@@ -456,29 +463,33 @@ Widget.prototype.fadeIn = function(s, cb)
   this.alpha = 0;
 
   // set sane default speed
-  s = s || 1000;
+  s = parseInt(s);
+  if( s === 0 || s === 'NaN' )
+    s = 1000;
 
   // set sane callback
-  cb = cb || function() {};
+  if( typeof cb !== 'function' )
+    cb = function() {};
 
   // calculate number of frames to animate for
-  this.animate_frames = s / 40;
+  var animate_frames = Math.ceil(s / ANIMATE_FRAME_TIME_SPACING);
 
   var self = this;
-  var delta = 1 / this.animate_frames;
+  var delta = 1 / animate_frames;
 
-  this.animate_cb = {
-    'process': function() {
+  this.animate.push({
+    frames:   animate_frames,
+    index:    0,
+    loop:     false,
+    process:  function() {
       self.alpha += delta;
     },
-    'complete': function() {
+    complete: function() {
       self.alpha = 1;
       cb();
     }
   };
 
-  this.animate = true;
-  this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
 };
@@ -500,24 +511,25 @@ Widget.prototype.fadeOut = function(s, cb)
   cb = cb || function() {};
 
   // calculate number of frames to animate for
-  this.animate_frames = s / 40;
+  var animate_frames = s / ANIMATE_FRAME_TIME_SPACING;
 
   var self = this;
-  var delta = 1 / this.animate_frames;
+  var delta = 1 / animate_frames;
 
-  this.animate_cb = {
-    'process': function() {
+  this.animate.push(
+    frames:   animate_frames,
+    index:    0,
+    loop:     false,
+    process:  function() {
       self.alpha -= delta;
     },
-    'complete': function() {
+    complete: function() {
       self.alpha = 0;
       self.set_visibility(false);
       cb();
     }
-  };
+  });
 
-  this.animate = true;
-  this.animate_index = 0;
   this.set_visibility(true);
   this.set_dirty(true);
 };
@@ -812,20 +824,36 @@ Widget.prototype.process = function()
     return;
 
   // are we animating
-  if( this.animate )
+  // check if have any animations on the animate stack
+  if( this.animate.length > 0 )
   {
-    this.animate_index++;
+    var animate_tmp;
 
-    if( 'process' in this.animate_cb )
-        this.animate_cb['process']();
-
-    if( this.animate_index >= this.animate_frames )
+    for( var a in this.animate )
     {
-      this.animate = false;
 
-      if( 'complete' in this.animate_cb )
-        this.animate_cb['complete']();
+      if( 'process' in a )
+        this.animate[a]['process']();
+
+      // increment the our frame index
+      this.animate[a]['index']++;
+
+      // wrap the frames if we are looping
+      if( this.animate[a]['loop'] )
+        this.animate[a]['index'] %= this.animate[a]['frames']++;
+
+      if( this.animate[a]['index'] >= this.animate[a]['frames'] )
+      {
+        delete this.animate[a];
+
+        if( 'complete' in a )
+          this.animate[a]['complete']();
+      }
+
     }
+
+    // filter out all completed (ie deleted/undefined) animations
+    this.animate_filter( function(v){ return (v !== undefined); } );
 
     this.dirty = true;
   }
@@ -969,6 +997,6 @@ Widget.prototype.update = function(f)
     var self = this;
 
     if( this.loop_timer == null )
-      this.loop_timer = setTimeout( function(){ self.loop_timer = null; self.update(); }, 40);
+      this.loop_timer = setTimeout( function(){ self.loop_timer = null; self.update(); }, ANIMATE_FRAME_TIME_SPACING);
   }
 }
