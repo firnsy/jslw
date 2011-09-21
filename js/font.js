@@ -25,6 +25,8 @@
 
 function Font(f)
 {
+  "use strict";
+
   if( !f || !(f = Font.get_filtered_object(f)) )
   {
     console.error('Invalid font object definition!');
@@ -44,6 +46,8 @@ function Font(f)
 
 Font.get_filtered_object = function(str)
 {
+  "use strict";
+
   if( /^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i.test(str) )
   {
     str = str.match(/^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i);
@@ -61,6 +65,8 @@ Font.get_filtered_object = function(str)
 
 Font.prototype.check = function()
 {
+  "use strict";
+
   if( this.size <= 0 )
     this.size = 1;
 
@@ -76,6 +82,8 @@ Font.prototype.check = function()
 
 Font.prototype.add_family = function(f)
 {
+  "use strict";
+
   if( f !== '' )
     this.family.push(f);
 
@@ -85,6 +93,8 @@ Font.prototype.add_family = function(f)
 
 Font.prototype.remove_family = function(f)
 {
+  "use strict";
+
   if( f in this.family )
     this.family.remove(f);
   else
@@ -96,6 +106,8 @@ Font.prototype.remove_family = function(f)
 
 Font.prototype.set_bold = function(s)
 {
+  "use strict";
+
   this.bold = s ? true : false;
   this.check();
 
@@ -105,6 +117,8 @@ Font.prototype.set_bold = function(s)
 
 Font.prototype.set_italic = function(s)
 {
+  "use strict";
+
   this.italic = s ? true : false;
   this.check();
 
@@ -114,6 +128,8 @@ Font.prototype.set_italic = function(s)
 
 Font.prototype.set_size = function(s)
 {
+  "use strict";
+
   s = parseInt(s, 10);
 
   if( s > 0 )
@@ -125,6 +141,8 @@ Font.prototype.set_size = function(s)
 
 Font.prototype.get_font = function()
 {
+  "use strict";
+
   this.check();
   this.font = this.style + this.size + 'px ' + this.family.join(',');
 
@@ -134,5 +152,7 @@ Font.prototype.get_font = function()
 
 Font.prototype.toString = function()
 {
+  "use strict";
+
   return '{family:' + this.family.join(',') + ', size:' + this.size + ', bold:' + this.bold + ', italic:' + this.italic + '}';
 };

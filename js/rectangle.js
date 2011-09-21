@@ -25,6 +25,8 @@
 
 function Rect(x, y, w, h)
 {
+  "use strict";
+
   this.set(x, y, w, h);
 
   return this;
@@ -33,6 +35,8 @@ function Rect(x, y, w, h)
 
 Rect.prototype.set = function(x, y, w, h)
 {
+  "use strict";
+
   if( x instanceof Rect )
   {
     this.x = x.x;     // x coordinate for top-left
@@ -58,6 +62,8 @@ Rect.prototype.set = function(x, y, w, h)
 
 Rect.prototype.translate = function(x, y)
 {
+  "use strict";
+
   if( x instanceof Vector2 )
   {
     // top-left shift
@@ -85,6 +91,8 @@ Rect.prototype.translate = function(x, y)
 
 Rect.prototype.scale = function(s)
 {
+  "use strict";
+
   // can't scale if geometry will be <= 0 afterwards
   if( s < 0 && (this.w <= (s*2) || this.h <= (s*2)) )
     return;
@@ -107,6 +115,8 @@ Rect.prototype.scale = function(s)
 
 Rect.prototype.intersects = function(x, y)
 {
+  "use strict";
+
   // check if first parameter is a Vector2
   if( x instanceof Vector2 )
   {
@@ -121,5 +131,7 @@ Rect.prototype.intersects = function(x, y)
 
 Rect.prototype.toString = function()
 {
+  "use strict";
+
   return '{x:' + this.x + ', y:' + this.y + ', w:' + this.w + ', h:' + this.h + '}';
 };

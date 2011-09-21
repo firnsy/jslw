@@ -29,6 +29,8 @@
  *         */
 Number.prototype.toColorPart = function()
 {
+  "use strict";
+
   return ((this < 16 ? '0' : '') + this.toString(16));
 };
 
@@ -39,6 +41,8 @@ Number.prototype.toColorPart = function()
  *             */
 function Color(c)
 {
+  "use strict";
+
   if( !c || !(c = Color.get_filtered_object(c)) )
     return false;
 
@@ -61,6 +65,8 @@ function Color(c)
  *             */
 Color.get_filtered_object = function(str)
 {
+  "use strict";
+
   if( /^#?([\da-f]{3}|[\da-f]{6})$/i.test(str) )
   {
     var _c = function(s,i)
@@ -88,6 +94,8 @@ Color.get_filtered_object = function(str)
  *             */
 Color.prototype.check = function()
 {
+  "use strict";
+
   if( this.r > 255 )
     this.r = 255;
   else if( this.r < 0 )
@@ -112,6 +120,8 @@ Color.prototype.check = function()
  *         */
 Color.prototype.revert = function()
 {
+  "use strict";
+
   this.r = this.original.r;
   this.g = this.original.g;
   this.b = this.original.b;
@@ -126,6 +136,8 @@ Color.prototype.revert = function()
  *             */
 Color.prototype.invert = function()
 {
+  "use strict";
+
   this.check();
   this.r = 255 - this.r;
   this.g = 255 - this.g;
@@ -141,6 +153,8 @@ Color.prototype.invert = function()
  *             */
 Color.prototype.lighten = function(amount)
 {
+  "use strict";
+
   amount = parseInt(amount, 10);
 
   this.r += amount;
@@ -157,6 +171,8 @@ Color.prototype.lighten = function(amount)
  *             */
 Color.prototype.darken = function(amount)
 {
+  "use strict";
+
   amount = parseInt(amount, 10);
 
   this.r -= amount;
@@ -172,6 +188,8 @@ Color.prototype.darken = function(amount)
  *         */
 Color.prototype.grayscale = function()
 {
+  "use strict";
+
   this.check();
   this.gray = Math.round(0.3*this.r + 0.59*this.g + 0.11*this.b);
   this.r=this.gray;
@@ -189,6 +207,8 @@ Color.prototype.grayscale = function()
  *                 */
 Color.prototype.get_lighter = function(amount, returnRGB)
 {
+  "use strict";
+
   return this.lighten(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
 };
 
@@ -200,6 +220,8 @@ Color.prototype.get_lighter = function(amount, returnRGB)
  *                 */
 Color.prototype.get_darker = function(amount, returnRGB)
 {
+  "use strict";
+
   return this.darken(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
 };
 
@@ -210,6 +232,8 @@ Color.prototype.get_darker = function(amount, returnRGB)
  *             */
 Color.prototype.get_grayscale = function(returnRGB)
 {
+  "use strict";
+
   this.grayscale();
 
   return (returnRGB ? ('rgb('+this.gray+','+this.gray+','+this.gray+')') : this.gray.toColorPart().replace(/^([\da-f]{2})$/i, "#$1$1$1"));
@@ -222,6 +246,8 @@ Color.prototype.get_grayscale = function(returnRGB)
  *             */
 Color.prototype.get_inverted = function(returnRGB)
 {
+  "use strict";
+
   return this.invert()[returnRGB ? 'getRGB' : 'getHex']();
 };
 
@@ -231,6 +257,8 @@ Color.prototype.get_inverted = function(returnRGB)
  *         */
 Color.prototype.get_rgb = function()
 {
+  "use strict";
+
   this.check();
   this.rgb = 'rgb('+this.r+','+this.g+','+this.b+')';
 
@@ -243,6 +271,8 @@ Color.prototype.get_rgb = function()
  *         */
 Color.prototype.get_rgba = function(alpha)
 {
+  "use strict";
+
   alpha = alpha || this.alpha;
 
   this.check();
@@ -258,6 +288,8 @@ Color.prototype.get_rgba = function(alpha)
  *             */
 Color.prototype.get_hex = function(shorthandReturnAcceptable)
 {
+  "use strict";
+
   this.check();
   this.hex = '#' + this.r.toColorPart() + this.g.toColorPart() + this.b.toColorPart();
 
@@ -270,5 +302,7 @@ Color.prototype.get_hex = function(shorthandReturnAcceptable)
 
 Color.prototype.toString = function()
 {
+  "use strict";
+
   return '{r:' + this.r + ', g:' + this.g + ', b:' + this.b+ '}';
 };

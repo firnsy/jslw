@@ -25,6 +25,7 @@
 
 Array.prototype.remove = function()
 {
+  "use strict";
   var a = arguments;
   var l = a.length;
   var i;
@@ -34,7 +35,7 @@ Array.prototype.remove = function()
   {
     i = a[--l];
 
-    while( (x = this.indexOf( i )) != -1 )
+    while( (x = this.indexOf( i )) !== -1 )
       this.splice(x, 1);
   }
 
@@ -55,6 +56,7 @@ if( ! Array.prototype.indexOf )
 {
   Array.prototype.indexOf = function(n, i)
   {
+    "use strict";
     i = i || 0;
     var l = this.length;
 
@@ -77,7 +79,7 @@ if( ! Array.prototype.indexOf )
 //
 if( !Array.prototype.filter )
 {
-  Array.prototype.filter = function(fun /*, thisp */)
+  Array.prototype.filter = function(func /*, thisp */)
   {
     "use strict";
 
@@ -86,7 +88,7 @@ if( !Array.prototype.filter )
 
     var t = Object(this);
     var len = t.length >>> 0;
-    if (typeof fun !== "function")
+    if (typeof func !== "function")
       throw new TypeError();
 
     var res = [];
@@ -95,8 +97,8 @@ if( !Array.prototype.filter )
     {
       if( i in t )
       {
-        var val = t[i]; // in case fun mutates this
-        if (fun.call(thisp, val, i, t))
+        var val = t[i]; // in case func mutates this
+        if (func.call(thisp, val, i, t))
           res.push(val);
       }
     }
