@@ -203,6 +203,12 @@ Widget.prototype.show = function()
 };
 
 
+Widget.prototype.clearAnimations = function()
+{
+  this.animate = [];
+}
+
+
 Widget.prototype.slideToggle = function(d, s, cb)
 {
   var offset = this.offset;
@@ -422,9 +428,6 @@ Widget.prototype.slideOut = function(d, s, cb)
       return;
   }
 
-  offset.set(delta);
-  offset.scale(s);
-
   // push this animation on the animate stack
   this.animate.push({
     frames:   animate_frames,
@@ -488,7 +491,7 @@ Widget.prototype.fadeIn = function(s, cb)
       self.alpha = 1;
       cb();
     }
-  };
+  });
 
   this.set_visibility(true);
   this.set_dirty(true);
@@ -516,7 +519,7 @@ Widget.prototype.fadeOut = function(s, cb)
   var self = this;
   var delta = 1 / animate_frames;
 
-  this.animate.push(
+  this.animate.push({
     frames:   animate_frames,
     index:    0,
     loop:     false,
@@ -677,7 +680,7 @@ Widget.prototype.mouse_process = function(x, y, a)
   var handled = false;
 
   // ignore invisible and animating widgets
-  if( ! this.visible || this.animate )
+  if( ! this.visible || this.animate.length > 0 )
     return handled;
 
   // children need to operate on relative point to current
@@ -823,37 +826,39 @@ Widget.prototype.process = function()
   if( ! this.visible )
     return;
 
+  // TODO: animations stack should perhaps use an associative array
+  // with a helper function to add and remove animations from the stack.
+  // this will allow finer control/separation of intra and inter widget
+  // animations
+
   // are we animating
   // check if have any animations on the animate stack
   if( this.animate.length > 0 )
   {
-    var animate_tmp;
-
     for( var a in this.animate )
     {
-
-      if( 'process' in a )
-        this.animate[a]['process']();
+      // call process function passing current frame index as appropriate
+      if( 'process' in this.animate[a] )
+        this.animate[a]['process'](this.animate[a]['index']);
 
       // increment the our frame index
       this.animate[a]['index']++;
 
       // wrap the frames if we are looping
       if( this.animate[a]['loop'] )
-        this.animate[a]['index'] %= this.animate[a]['frames']++;
+        this.animate[a]['index'] %= this.animate[a]['frames'];
 
       if( this.animate[a]['index'] >= this.animate[a]['frames'] )
       {
-        delete this.animate[a];
-
-        if( 'complete' in a )
+        if( 'complete' in this.animate[a] )
           this.animate[a]['complete']();
-      }
 
+        delete this.animate[a];
+      }
     }
 
     // filter out all completed (ie deleted/undefined) animations
-    this.animate_filter( function(v){ return (v !== undefined); } );
+    this.animate = this.animate.filter( function(v){ return (v !== undefined); } );
 
     this.dirty = true;
   }

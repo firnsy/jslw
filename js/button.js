@@ -224,7 +224,6 @@ Button.prototype.set_active_type = function(type)
   this.type_states['active_type'] = type;
 
   var ts = this.type_states['objects'][type][this.type_states['active_state']];
-  this.animate = (ts instanceof Object && 'animate' in ts ) ? ts.animate : false;
 
   this.set_dirty(true);
 }
@@ -419,10 +418,41 @@ Button.prototype.set_active_state = function(state)
     return;
   }
 
+  // set our widget state
   this.type_states['active_state'] = state;
 
-  var ts = this.type_states['objects'][this.type_states['active_type']][state];
-  this.animate = (ts instanceof Object && 'animate' in ts ) ? ts.animate : false;
+  // FIXME:
+
+  var type = this.type_states['active_type'];
+
+  // TODO: if state not available for type we need have a default type
+  if( ! (state in this.type_states['objects'][type]) )
+  {
+    if( state in this.type_states['objects']['_default'] )
+      type = '_default';
+    else
+      state = '_default';
+  }
+
+  var ts = this.type_states['objects'][type][state];
+
+  if( ts && ts['animate'] )
+  {
+    // TODO: animations are hard coded, need some user definable animation
+    // frames or frame rect to allow some automagical calculation
+    this.animate.push({
+      frames:   16,
+      index:    0,
+      loop:     true,
+      process:  function(frame) {
+        if( (frame % 2) == 0 )
+        {
+          ts['animate_bounds'].y += 88;
+          ts['animate_bounds'].y %= 704;
+        }
+      },
+    });
+  }
 
   this.set_dirty(true);
 }
@@ -477,28 +507,9 @@ Button.prototype.set_state_image_animate = function(state, t, l)
     return;
   }
 
-  this.animate_frames = Math.ceil(1000 / 40);
-  this.animate = true;
-  this.animate_index = 0;
-
-  console.log(this.animate_frames);
-
   var ts = this.type_states['objects']['_default'][state];
   ts['animate'] = true;
   ts['animate_bounds'] = new Rect(0, 0, this.bounds.w, this.bounds.h);
-
-  var self = this;
-
-  this.animate_cb = {
-    'process': function() {
-      ts['animate_bounds'].y = (ts['animate_bounds'].y + 88) % 704;
-        console.log(ts['animate_bounds'].y);
-    },
-    'complete': function() {
-      self.animate = true;
-      self.animate_index = 0;
-    }
-  }
 };
 
 
@@ -611,7 +622,6 @@ Button.prototype.render_widget = function(context)
 
       if( 'animate_bounds' in ts )
       {
-        console.log("tt" + ts['animate_bounds'].y);
         context.drawImage(ts['image'],
                           ts['animate_bounds'].x,
                           ts['animate_bounds'].y,
