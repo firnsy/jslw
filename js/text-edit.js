@@ -1,5 +1,5 @@
 /*
- * This file is part of the NSM framework
+ * This file is part of the JavaScript Lightweight Widget framework
  *
  * Copyright (C) 2010-2011, Ian Firns        <firnsy@securixlive.com>
  *
