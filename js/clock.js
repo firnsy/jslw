@@ -23,11 +23,11 @@
 // IMPLEMENTATION
 //
 
-function Clock(p, x, y, w, h, c)
+function Clock(p, r, c)
 {
-  // call our super constructure
-  this.base = Widget;
-  this.base(p, x, y, w, h);
+  // call our super constructor
+  this.base = Widget.prototype;
+  Widget.apply(this, arguments);
 
   this.seconds = false;
 

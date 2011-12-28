@@ -25,9 +25,9 @@
 
 function Button(p, r, c)
 {
-  // call our super constructure
-  this.base = Widget;
-  this.base(p, r, c);
+  // call our super constructor
+  this.base = Widget.prototype;
+  Widget.apply(this,arguments);
 
   // stores type and states of button
   this.type_states = {
@@ -406,15 +406,25 @@ Button.prototype.add_states = function(state)
   }
 }
 
+Button.prototype.get_active_state = function()
+{
+  return this.type_states['active_state'];
+}
 
 Button.prototype.set_active_state = function(state)
 {
-  if ( state == null || state == '' )
+  if ( state == null || state == '' ) {
     state = '_default';
+  }
 
   if ( this.type_states['states'].indexOf(state) == -1 )
   {
     console.warn("State " + state + " is not available");
+    return;
+  }
+
+  // check if we're already in the active state
+  if (this.type_states['active_state'] == state) {
     return;
   }
 
@@ -436,7 +446,7 @@ Button.prototype.set_active_state = function(state)
 
   var ts = this.type_states['objects'][type][state];
 
-  if( ts && ts['animate'] )
+  if( ts && ts['animate'] && this.animate.length == 0)
   {
     // TODO: animations are hard coded, need some user definable animation
     // frames or frame rect to allow some automagical calculation
@@ -452,6 +462,10 @@ Button.prototype.set_active_state = function(state)
         }
       },
     });
+  }
+  else {
+    // XXX: fix for button click disable after animation
+    this.animate = [];
   }
 
   this.set_dirty(true);
@@ -656,8 +670,5 @@ Button.prototype.render_widget = function(context)
     context.drawImage(this.overlay_image, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
   }
 
-
   this.render_caption(context);
 }
-
-

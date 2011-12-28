@@ -25,9 +25,9 @@
 
 Slider = function(p, x, y, w, h, c)
 {
-  // call our super constructure
-  this.base = Widget;
-  this.base(p, x, y, w, h);
+  // call our super constructor
+  this.base = Widget.prototype;
+  Widget.apply(this,arguments);
 
   this.background_image_up = null;
   this.background_image_down = null;

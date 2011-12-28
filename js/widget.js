@@ -23,6 +23,14 @@
 // IMPLEMENTATION
 //
 
+//IMPLEMENTATION
+
+
+/**
+ * @param p Parent widget, only the root object has no parent
+ * @param r Rectangle bounding box for widget
+ * @param c Color for Widget
+ */
 function Widget(p, r, c)
 {
   if( arguments.length === 0 )
@@ -81,6 +89,7 @@ function Widget(p, r, c)
   // event state
   this.is_pressed = false;
   this.is_dragged = false;
+  this.is_touch = false;
 
   this.register_callbacks(this);
 
@@ -143,10 +152,11 @@ Widget.prototype.set_canvas = function(canvas)
   var self = this;
 
   // apply our generic listener's to the canvas DOM
-  canvas.addEventListener("touchstart", function(e){ self.touch_listener(e, self, 'mouse_down') }, false);
-  canvas.addEventListener("touchmove", function(e){ self.touch_listener(e, self, 'mouse_move') }, false);
-  canvas.addEventListener("touchend", function(e){ self.touch_listener(e, self, 'mouse_end') }, false);
-  canvas.addEventListener("touchcancel", function(e){ self.touch_listener(e, self, 'mouse_end') }, false);
+  canvas.addEventListener("touchstart", function(e){ self.touch_listener(e, self, 'touch_start') }, false);
+  canvas.addEventListener("touchmove", function(e){ self.touch_listener(e, self, 'touch_move') }, false);
+  canvas.addEventListener("touchend", function(e){ self.touch_listener(e, self, 'touch_end') }, false);
+  canvas.addEventListener("touch", function(e){ self.touch_listener(e, self, 'touch') }, false);
+  canvas.addEventListener("touchcancel", function(e){ self.touch_listener(e, self, 'touch_cancel') }, false);
   canvas.addEventListener("mousedown", function(e){ self.mouse_listener(e, self, 'mouse_down') }, false);
   canvas.addEventListener("mouseup", function(e){ self.mouse_listener(e, self, 'mouse_up') }, false);
   canvas.addEventListener("mousemove", function(e){ self.mouse_listener(e, self, "mouse_move") }, false);
@@ -177,7 +187,9 @@ Widget.prototype.add_child = function(c)
 
 Widget.prototype.get_visibility = function()
 {
-  return this.visible;
+  return this.visible &&
+         ( this.alpha > 0 ) &&
+         ( this.scale > 0 );
 };
 
 
@@ -656,22 +668,64 @@ Widget.prototype.add_event_listener = function(a, cb)
   this.event_cb[a] = cb;
 }
 
-
+/**
+ * Handle a mouse move event
+ *
+ * @param e Mouse event object
+ * @param o Widget object handling mouse move
+ * @param a event type string [mousemove,mousedown,mouseup...]
+ */
 Widget.prototype.mouse_listener = function(e, o, a)
 {
+  if (this.is_touch) return;
+
   var x = (e.pageX - o.canvas.offsetLeft) / this.scale;
   var y = (e.pageY - o.canvas.offsetTop) / this.scale;
 
   o.mouse_process(x, y, a);
 }
 
+/**
+ * Handle a touch event
+ *
+ * @param e Touch event object
+ * @param o Widget object handling mouse move
+ * @param a event type string [touch_start,touch_move,touch_end...]
+ */
 Widget.prototype.touch_listener = function(e, o, a)
 {
-  var touch = e.touches[0];
-  var x = (touch.pageX - o.canvas.offsetLeft) / this.scale;
-  var y = (touch.pageY - o.canvas.offsetTop) / this.scale;
+  e.preventDefault();
+  var touches = e.changedTouches;
+  this.is_touch = true;
+  var first = touches[0];
+  var mouse_type = "";
 
-  o.mouse_process(x, y, a);
+  //console.log('touch type ' + e.type);
+
+  switch(a)
+  {
+    case "touch_start":
+      mouse_type = "mouse_down";
+      break;
+    case "touch_move":
+      mouse_type="mouse_move";
+      break;
+    case "touch_end":
+      mouse_type="mouse_up";
+      break;
+    case "touch_cancel":
+      mouse_type="mouse_out";
+      break;
+    default: {
+      console.log('unhandled touch type ' + e.type);
+      return;
+    }
+  }
+
+  var x = (first.pageX - o.canvas.offsetLeft) / this.scale;
+  var y = (first.pageY - o.canvas.offsetTop) / this.scale;
+
+  o.mouse_process(x, y, mouse_type);
 }
 
 
@@ -698,7 +752,7 @@ Widget.prototype.mouse_process = function(x, y, a)
 
     // do user call back
     if( typeof this.event_cb[a] === 'function' )
-      handled |= this.event_cb[a](x, y);
+      handled |= this.event_cb[a](this, x, y);
 
     // do correlated actions (eg click)
     switch( a )
@@ -711,14 +765,14 @@ Widget.prototype.mouse_process = function(x, y, a)
             this.mouse_drag_end(x, y);
 
             if( this.event_cb['mouse_drag_end'] )
-              this.event_cb['mouse_drag_end'](x, y);
+              this.event_cb['mouse_drag_end'](this, x, y);
           }
           else
           {
             this.mouse_click(x, y);
 
             if( this.event_cb['mouse_click'] )
-              this.event_cb['mouse_click'](x, y);
+              this.event_cb['mouse_click'](this, x, y);
           }
         }
 
@@ -744,7 +798,7 @@ Widget.prototype.mouse_process = function(x, y, a)
             this.mouse_drag_move(x, y);
 
             if( this.event_cb['mouse_drag_move'] )
-              this.event_cb['mouse_drag_move'](x, y);
+              this.event_cb['mouse_drag_move'](this, x, y);
 
           }
           else if( x_delta > 20 || y_delta > 20 )
@@ -753,7 +807,7 @@ Widget.prototype.mouse_process = function(x, y, a)
             this.mouse_drag_start(x, y);
 
             if( this.event_cb['mouse_drag_start'] )
-              this.event_cb['mouse_drag_start'](x, y);
+              this.event_cb['mouse_drag_start'](this, x, y);
           }
         }
         break;
@@ -775,7 +829,7 @@ Widget.prototype.mouse_process = function(x, y, a)
       this.mouse_drag_end(x, y);
 
       if( this.event_cb['mouse_drag_end'] )
-        this.event_cb['mouse_drag_end'](x, y);
+        this.event_cb['mouse_drag_end'](this, x, y);
     }
 
     this.is_dragged = false;

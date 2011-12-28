@@ -22,31 +22,46 @@
 //
 // IMPLEMENTATION
 //
-
-ListBox = function(p, x, y, w, h, c)
+/**
+ * @param p parent object
+ * @param r rectangle object
+ * @param c color object
+ */
+ListBox = function(p, r, c)
 {
-  // call our super constructure
-  this.base = Widget;
-  this.base(p, x, y, w, h);
+  // call our super constructor
+  this.base = Widget.prototype;
+  Widget.apply(this, arguments);
 
   this.background_image_up = null;
   this.background_image_down = null;
 
+  // storage for the list items
   this.list = Array();
-  this.item_index = 0;
+
+  // define the maximum number of items the list can hold
+  // n = 0 : unlimited
+  // n > 0 : fifo list of length n
+  this.max_items = 0;
   this.list_offset = 0;
   this.list_offset_max = 0;
+
+  // index of the active item
   this.item_index_active = -1;
+
+  //
   this.item_height = 20;
   this.item_bounds = new Rect(this.bounds);
   this.item_bounds.scale(-10);
+
   this.active_font = this.font;
   this.active_font_color = new Color('#000');
   this.active_color = new Color('#fff');
 
+  // number of items visible in the list
   this.item_visible_count = Math.floor(this.item_bounds.h / this.item_height) + 1;
 
-  this.drag_origin = new Vector2(0,0);
+  this.drag_origin = new Vector2(0, 0);
 
   this.slider = null;
 
@@ -56,12 +71,40 @@ ListBox = function(p, x, y, w, h, c)
 
 ListBox.prototype = new Widget;
 
-ListBox.prototype.add_item = function(item, index)
+
+//
+// ITEMS
+ListBox.prototype.set_max_items = function(nitems)
+{
+  if (nitems < 0) {
+    console.error('Maximum items for ListBox must be greater than or equal to zero');
+  }
+
+  this.max_items = nitems;
+
+  return this.max_items;
+}
+
+ListBox.prototype.add_item = function(item)
 {
   item = item || '';
 
   this.list.push(item);
+  if ( (this.max_items > 0) &&
+       (this.list.length > this.max_items) ) {
+    this.list.pop();
+  }
+
   this.list_offset_max = Math.max(0, (this.item_height * this.list.length) - this.item_bounds.h);
+  return this.list.length;
+}
+
+ListBox.prototype.clear_items = function()
+{
+  this.list = [];
+  this.item_index_active = -1;
+
+  return this.list.length;
 }
 
 
@@ -117,7 +160,9 @@ ListBox.prototype.mouse_click = function(x, y)
   var index = Math.floor((this.list_offset + (y - this.item_bounds.y)) / this.item_height);
 
   if( index < this.list.length )
+  {
     this.item_index_active = index;
+  }
 }
 
 //
