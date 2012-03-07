@@ -1,7 +1,7 @@
 /*
  * This file is part of the JavaScript Lighweight Widget framework
  *
- * Copyright (C) 2010-2011, Ian Firns        <firnsy@securixlive.com>
+ * Copyright (C) 2010-2012, Ian Firns        <firnsy@securixlive.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License Version 2 as
