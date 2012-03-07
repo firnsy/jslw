@@ -23,7 +23,7 @@
 // IMPLEMENTATION
 //
 
-function Clock(p, r, c)
+function Clock(p, r, c, u)
 {
   // call our super constructor
   this.base = Widget.prototype;
@@ -33,6 +33,7 @@ function Clock(p, r, c)
 
   this.time_interval = 60 * 1000;
   this.timer_id = null;
+  this.utc = true;
 
   this.register_callbacks(this);
 }
@@ -54,9 +55,9 @@ Clock.prototype.update_time = function()
 {
   var d = new Date();
 
-  var h = '00' + d.getHours();
-  var m = '00' + d.getMinutes();
-  var s = '00' + d.getSeconds();
+  var h = '00' + ( this.utc ) ? d.getUTCHours() : d.getHours();
+  var m = '00' + ( this.utc ) ? d.getUTCMinutes() : d.getMinutes();
+  var s = '00' + ( this.utc ) ? d.getUTCSeconds() : d.getSeconds();
 
   var i = (60 - ( s % 60 )) * 1000;
 

@@ -35,6 +35,7 @@ TabMap = function(p, x, y, w, h, c)
   this.tabs = {};
   this.active_tab = '';
   this.pressed_tab = '';
+  this.show_labels = false;
 
   // add tab specific events
   this.valid_events.push('tab_click');
@@ -44,6 +45,10 @@ TabMap = function(p, x, y, w, h, c)
 }
 
 TabMap.prototype = new Widget;
+
+TabMap.prototype.set_show_labels = function(s) {
+  this.show_labels = s;
+}
 
 TabMap.prototype.add_tab = function(t, r, i_active, i_overlay)
 {
@@ -68,7 +73,7 @@ TabMap.prototype.add_tab = function(t, r, i_active, i_overlay)
   if( i_overlay )
     this.set_tab_image_overlay(t, i_overlay);
 
-  // set the activ tab to this if it's the first
+  // set the active tab to this if it's the first
   if( this.active_tab === '' )
     this.active_tab = t;
 }
@@ -89,7 +94,6 @@ TabMap.prototype.set_tab_bounds = function(t, r)
 
   this.tabs[t]['bounds'] = r;
 }
-
 
 TabMap.prototype.set_tab_image_active = function(t, i)
 {
@@ -117,7 +121,6 @@ TabMap.prototype.set_tab_image_active = function(t, i)
     this.tabs[t]['image_active'].onload = function() { self.set_dirty(true); };
   }
 }
-
 
 TabMap.prototype.set_tab_image_overlay = function(t, i)
 {
@@ -182,13 +185,13 @@ TabMap.prototype.mouse_up = function(x, y)
     {
       if( tab['bounds'].intersects(x, y) )
       {
-        this.active_tab = t;
-        this.pressed_tab = '';
-        this.set_dirty(true);
-
         // invoke the tab_click callback with active tab as parameter
         if( this.event_cb['tab_click'] )
           this.event_cb['tab_click'](t)
+
+        this.active_tab = t;
+        this.pressed_tab = '';
+        this.set_dirty(true);
 
         return;
       }
@@ -202,6 +205,53 @@ TabMap.prototype.tab_click = function(t) {}
 
 //
 // RENDERING
+TabMap.prototype.render_labels = function(context)
+{
+  context.save();
+  for (var tab in this.tabs)
+  {
+    var lx = this.bounds.x + this.tabs[tab].bounds.x;
+    var ly = this.bounds.y + this.tabs[tab].bounds.y;
+  
+    switch( this.text_alignment_horizontal )
+    {
+      case "center":
+        lx += this.tabs[tab].bounds.w / 2;
+        context.textAlign = "center";
+        break;
+      case "right":
+        lx += (this.tabs[tab].bounds.w);
+        context.textAlign = "right";
+        break;
+      case "left":
+        context.textAlign = "left";
+        break;
+    }
+  
+    switch( this.text_alignment_vertical )
+    {
+      case "top":
+        context.textBaseline = "top";
+        break;
+      case "middle":
+        context.textBaseline = "middle";
+        ly += (this.tabs[tab].bounds.h/2);
+        break;
+      case "bottom":
+        context.textBaseline = "bottom";
+        ly += (this.tabs[tab].bounds.h);
+        break;
+    }
+  
+    context.font = this.font.get_font();
+  
+    if( this.font_color instanceof Color )
+      context.fillStyle = this.font_color.get_rgba(this.alpha);
+  
+    context.fillText(tab, lx, ly);
+  }
+  context.restore();
+}
 
 TabMap.prototype.render_widget = function(context)
 {
@@ -227,6 +277,12 @@ TabMap.prototype.render_widget = function(context)
       this.tabs[this.pressed_tab]['image_overlay'].width > 0 )
   {
     context.drawImage(this.tabs[this.pressed_tab]['image_overlay'], this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+  }
+  
+  if (this.show_labels) 
+  {
+    // we want to show the text for the tabs in the label locations
+    this.render_labels(context);
   }
 
   this.render_caption(context);

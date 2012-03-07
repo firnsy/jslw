@@ -64,6 +64,14 @@ Vector2.prototype.translate = function(x, y)
   return this;
 };
 
+Vector2.prototype.difference = function(v)
+{
+  if (v instanceof Vector2)
+  {
+    this.x = this.x - v.x;
+    this.y = this.y - v.y;
+  }
+}
 
 Vector2.prototype.scale = function(s)
 {

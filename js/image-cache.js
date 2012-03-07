@@ -136,11 +136,13 @@ ImageCache.prototype.image_loaded = function(k)
   this.count_loaded++;
 
   // fire the on_load callback with total progress passed
-  this.cb_on_load(100 * this.count_loaded / this.count_total);
+  // pass arguments: current progress, key, image source
+  this.cb_on_load(100 * this.count_loaded / this.count_total, k, this.cache[k]['image'].src);
 
   // fire the on_loaded callback when all images are loaded
+  // pass arguments: total images loaded
   if( this.count_loaded === this.count_total )
-    this.cb_on_loaded();
+    this.cb_on_loaded(this.count_total);
 };
 
 

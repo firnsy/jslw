@@ -23,8 +23,6 @@
 // IMPLEMENTATION
 //
 
-//IMPLEMENTATION
-
 
 /**
  * @param p Parent widget, only the root object has no parent
@@ -40,7 +38,7 @@ function Widget(p, r, c)
 
   if( ! ( r instanceof Rect ) )
   {
-    console.error('Bounds for widget must be specified as a Rect');
+    console.error('Bounds for widget must be of type Rect');
     return;
   }
 
@@ -54,21 +52,19 @@ function Widget(p, r, c)
   this.offset = new Vector2(0, 0);
   this.background_image = null;
 
+  //
   // default member initialisation
+
+  // track widget heirarchy
   this.root = false;
   this.children = [];
 
+  // base characteristics
   this.caption = '';
   this.font = new Font('12px sans-serif');
   this.font_color = new Color('#000');
   this.text_alignment_horizontal = 'left';
   this.text_alignment_vertical = 'middle';
-
-  this.visible = true;
-  this.dirty = false;
-  this.alpha = 1.0;
-  this.clip = true;
-  this.scale = 1.0;
 
   // animate stack
   this.animate = [];
@@ -93,20 +89,42 @@ function Widget(p, r, c)
 
   this.register_callbacks(this);
 
-  // rendering members
+  // process/render state
+  this.visible = true;
+  this.dirty = false;
+  this.alpha = 1.0;
+  this.clip = true;
+  this.scale = 1.0;
+
   this.looping = false;
   this.loop_timer = null;
   this.canvas = null;
   this.context = null;
+
+  // border
+  this.has_border = false;
+  this.border_width = 1;
+  this.radius = 0;
+
+  // text margins
+  this.right_margin = 0;
+  this.left_margin = 0;
+  this.top_margin = 0;
+  this.bottom_margin = 0;
+
+  // multi line support
+  this.multi_line_text_enabled = false;
+  this.text_height = this.get_text_height();
 }
 
 
-Widget.prototype.is_root = function()
-{
-  return this.root;
-};
+//
+// HEIRARCHY
+//
 
-
+/**
+ * 
+ */
 Widget.prototype.get_root = function()
 {
   if( this.root || ! ( this.parent instanceof Widget ) )
@@ -115,55 +133,26 @@ Widget.prototype.get_root = function()
   return this.parent.get_root();
 };
 
+Widget.prototype.is_root = function()
+{
+  return this.root;
+};
 
+/**
+ * 
+ */
 Widget.prototype.set_root = function()
 {
   if( this.parent instanceof Widget )
-    console.warn('This widget has a parent.');
+    console.warn('set_root: This widget has a parent.');
 
   this.root = true;
+
+  return this;
 };
-
-
-Widget.prototype.set_scale = function(s)
-{
-  if( s <= 0 )
-    console.warn('Scale must a positive real number.');
-
-  this.scale = s;
-};
-
-
-
-Widget.prototype.set_canvas = function(canvas)
-{
-  if( ! ( canvas instanceof HTMLCanvasElement ) )
-  {
-    console.log('ERROR: You have not supplied a canvas element.');
-    return;
-  }
-
-  context = canvas.getContext("2d");
-
-  // store for later
-  this.canvas = canvas;
-  this.context = context;
-
-  var self = this;
-
-  // apply our generic listener's to the canvas DOM
-  canvas.addEventListener("touchstart", function(e){ self.touch_listener(e, self, 'touch_start') }, false);
-  canvas.addEventListener("touchmove", function(e){ self.touch_listener(e, self, 'touch_move') }, false);
-  canvas.addEventListener("touchend", function(e){ self.touch_listener(e, self, 'touch_end') }, false);
-  canvas.addEventListener("touch", function(e){ self.touch_listener(e, self, 'touch') }, false);
-  canvas.addEventListener("touchcancel", function(e){ self.touch_listener(e, self, 'touch_cancel') }, false);
-  canvas.addEventListener("mousedown", function(e){ self.mouse_listener(e, self, 'mouse_down') }, false);
-  canvas.addEventListener("mouseup", function(e){ self.mouse_listener(e, self, 'mouse_up') }, false);
-  canvas.addEventListener("mousemove", function(e){ self.mouse_listener(e, self, "mouse_move") }, false);
-  canvas.addEventListener("mouseout", function(e){ self.mouse_listener(e, self, "mouse_out") }, false);
-};
-
-
+/**
+ * set the parent widget for this
+ */
 Widget.prototype.set_parent = function(p)
 {
   // add widget as parent object if appropriate
@@ -173,18 +162,54 @@ Widget.prototype.set_parent = function(p)
 
     p.add_child(this);
   }
+
+  return this;
 };
 
-
+/**
+ * Add a child widget to this
+ */
 Widget.prototype.add_child = function(c)
 {
   // add child to list of children
   if( c instanceof Widget )
     this.children.push(c);
+  else
+    console.error("add_child: Non widget instance provided.");
+
+  return this;
 };
 
-// VISIBILITY AND TRANSITION/ANIMATION
 
+Widget.prototype.get_ancestor_length = function()
+{
+  return 1 + ( this.parent instanceof Widget ? this.parent.get_ancestor_length() : 0 );
+};
+
+//
+// VISIBILITY AND TRANSITION/ANIMATION
+//
+
+/**
+ * set the scale of the object. The minimum scale we can see
+ * is 1 pixel so if the bounds x scale is less than 1 pixel
+ * then we can't see it
+ */
+Widget.prototype.set_scale = function(s)
+{
+  if( s > 0 )
+    this.scale = s;
+  else
+    console.error('Scale must a positive real number.');
+
+  return this;
+};
+
+/**
+ * Ask the question can we be seen? If our scale or 
+ * alpha are small enough then we can't. Also if the
+ * visible boolean is false we are not rendered
+ */
 Widget.prototype.get_visibility = function()
 {
   return this.visible &&
@@ -192,34 +217,56 @@ Widget.prototype.get_visibility = function()
          ( this.scale > 0 );
 };
 
-
+/**
+ * Sets the visible state
+ */
 Widget.prototype.set_visibility = function(state)
 {
   this.visible = ( state ) ? true : false;
+
+  return this;
 };
 
 
+/**
+ * Hide the widget by setting its visible to false
+ */
 Widget.prototype.hide = function()
 {
   this.visible = false;
   this.set_dirty(true);
+
+  return this;
 };
 
-
+/**
+ * Show the widget by setting it's visibility to true
+ * and moving it back to it's original location, should
+ * possibly set the alpha to 1 as well?
+ */
 Widget.prototype.show = function()
 {
   this.offset.set(0, 0);
   this.visible = true;
 
   this.set_dirty(true);
+
+  return this;
 };
 
-
+/**
+ * remove the animations array
+ */
 Widget.prototype.clearAnimations = function()
 {
   this.animate = [];
+
+  return this;
 }
 
+//
+// ANIMATION TRANSITIONS
+//
 
 Widget.prototype.slideToggle = function(d, s, cb)
 {
@@ -230,20 +277,15 @@ Widget.prototype.slideToggle = function(d, s, cb)
     this.slideOut(d, s, cb);
   else
     this.slideIn(d, s, cb);
+
+  return this;
 };
 
-
+/**
+ * Animate the widget sliding it somewhere on the screen
+ */
 Widget.prototype.slideTo = function(o, s, cb)
 {
-  var offset = this.offset;
-
-  // check if the widget is already "in"
-  if( offset.x === 0 && offset.y === 0 )
-    return;
-
-  // set sane default direction
-  d = d || "left";
-
   // set sane default speed
   s = parseInt(s);
   if( s === 0 || s === 'NaN' )
@@ -256,65 +298,43 @@ Widget.prototype.slideTo = function(o, s, cb)
   // calculate number of frames to animate for
   var animate_frames = Math.ceil(s / ANIMATE_FRAME_TIME_SPACING);
 
-  var delta;
+  var delta = new Vector2(
+    Math.ceil((o.x - this.bounds.x) / animate_frames),
+    Math.ceil((o.y - this.bounds.y) / animate_frames)
+  );
 
-  switch( d )
-  {
-    case "left":
-      delta = new Vector2(
-        Math.ceil(this.bounds.x2 / animate_frames),
-        0
-      );
-      break;
-    case "right":
-      delta = new Vector2(
-        -Math.ceil((this.parent.bounds.w - this.bounds.x) / animate_frames),
-        0
-      );
-      break;
-    case "up":
-      delta = new Vector2(
-        0,
-        Math.ceil(this.bounds.y2 / animate_frames)
-      );
-      break;
-    case "down":
-      delta = new Vector2(
-        0,
-        -Math.ceil((this.parent.bounds.h - this.bounds.y) / animate_frames)
-      );
-      break;
-    default:
-      return;
-  }
-
-  offset.set(delta);
-  offset.scale(-animate_frames);
+  var self = this;
 
   this.animate.push({
     frames:   animate_frames,
     index:    0,
     loop:     false,
     process:  function() {
-      offset.translate(delta);
+      self.bounds.translate(delta);
     },
     complete: function() {
+      self.bounds.x = o.x;
+      self.bounds.y = o.y;
       cb();
     }
   });
 
   this.set_visibility(true);
   this.set_dirty(true);
+
+  return this;
 };
 
-
-
+/**
+ * Another slide animation this is to return the widget to the 
+ * current view, we assume someone has slid it out earlier
+ */
 Widget.prototype.slideIn = function(d, s, cb)
 {
   var offset = this.offset;
 
-  // check if the widget is already "in"
-  if( offset.x === 0 && offset.y === 0 )
+  // check if the widget is already "in" and showing
+  if( offset.x === 0 && offset.y === 0 && this.visible)
     return;
 
   // set sane default direction
@@ -376,15 +396,21 @@ Widget.prototype.slideIn = function(d, s, cb)
       offset.translate(delta);
     },
     complete: function() {
+      offset.set(0, 0);
       cb();
     }
   });
 
   this.set_visibility(true);
   this.set_dirty(true);
+
+  return this;
 };
 
-
+/**
+ * Probably the last of the slidy animations this one slides the widget out
+ * of site
+ */
 Widget.prototype.slideOut = function(d, s, cb)
 {
   var offset = this.offset;
@@ -408,37 +434,40 @@ Widget.prototype.slideOut = function(d, s, cb)
   // calculate number of frames to animate for
   var animate_frames = Math.ceil(s / ANIMATE_FRAME_TIME_SPACING);
 
-  var delta;
+  var offset_final;
 
   switch( d )
   {
     case "left":
-      delta = new Vector2(
-        -Math.ceil(this.bounds.x2 / animate_frames),
+      offset_final = new Vector2(
+        -Math.ceil(this.bounds.x2),
         0
       );
       break;
     case "right":
-      delta = new Vector2(
-        Math.ceil((this.parent.bounds.w - this.bounds.x) / animate_frames),
+      offset_final = new Vector2(
+        Math.ceil(this.parent.bounds.w - this.bounds.x),
         0
       );
       break;
     case "up":
-      delta = new Vector2(
+      offset_final = new Vector2(
         0,
-        -Math.ceil(this.bounds.y2 / animate_frames)
+        -Math.ceil(this.bounds.y2)
       );
       break;
     case "down":
-      delta = new Vector2(
+      offset_final = new Vector2(
         0,
-        Math.ceil((this.parent.bounds.h - this.bounds.y) / animate_frames)
+        Math.ceil(this.parent.bounds.h - this.bounds.y)
       );
       break;
     default:
       return;
   }
+
+  var delta = new Vector2(offset_final);
+  delta.scale(1 / animate_frames);
 
   // push this animation on the animate stack
   this.animate.push({
@@ -449,15 +478,21 @@ Widget.prototype.slideOut = function(d, s, cb)
       offset.translate(delta);
     },
     complete: function() {
+      offset = offset_final;
       cb();
     }
   });
 
   this.set_visibility(true);
   this.set_dirty(true);
+
+  return this;
 };
 
-
+/**
+ * Toggles the alpha state of the widget to 
+ * fade in or out
+ */
 Widget.prototype.fadeToggle = function(s, cb)
 {
   // check if the widget is "faded in"
@@ -465,9 +500,13 @@ Widget.prototype.fadeToggle = function(s, cb)
     this.fadeIn(s, cb);
   else
     this.fadeOut(s, cb);
+
+  return this;
 };
 
-
+/**
+ * Fade the widget into view
+ */
 Widget.prototype.fadeIn = function(s, cb)
 {
   // check if the widget has fully faded in
@@ -507,14 +546,17 @@ Widget.prototype.fadeIn = function(s, cb)
 
   this.set_visibility(true);
   this.set_dirty(true);
+
+  return this;
 };
 
-
+/**
+ * Fade the widget out of view
+ */
 Widget.prototype.fadeOut = function(s, cb)
 {
   // check if we the widget is already "out"
-  if( this.alpha === 0 ||
-      ! this.visible )
+  if( ( this.alpha === 0 ) || ( ! this.visible ) )
     return;
 
   this.alpha = 1;
@@ -547,67 +589,107 @@ Widget.prototype.fadeOut = function(s, cb)
 
   this.set_visibility(true);
   this.set_dirty(true);
+
+  return this;
 };
 
 
+//
 // STYLING
-Widget.prototype.set_text_alignment = function(mode_h, mode_v)
+//
+
+/**
+ * Set the text alignment in the widget,
+ * allows for any of the 9 ordinal points
+ *        * * *
+ *        * * *
+ *        * * *
+ */
+Widget.prototype.set_text_alignment = function(h, v)
 {
-  this.set_text_alignment_horizontal(mode_h);
-  this.set_text_alignment_vertical(mode_v);
+  this.set_text_alignment_horizontal(h);
+  this.set_text_alignment_vertical(v);
+
+  return this;
 };
 
-
-Widget.prototype.set_text_alignment_horizontal = function(mode)
+/**
+ * sets the horizontal text alignment, center, left or right
+ */
+Widget.prototype.set_text_alignment_horizontal = function(m)
 {
-  switch( mode )
+  switch( m )
   {
     case 'center':
     case 'left':
     case 'right':
-      this.text_alignment_horizontal = mode;
+      this.text_alignment_horizontal = m;
       break;
     default:
-      console.error('Invalid alignment mode specified: ' + mode)
+      console.error('Invalid alignment mode specified: ' + m)
   }
+
+  return this;
 };
 
-
-Widget.prototype.set_text_alignment_vertical = function(mode)
+/**
+ * Sets the vertical text alignment top, middle, baseline
+ */
+Widget.prototype.set_text_alignment_vertical = function(m)
 {
-  switch( mode )
+  switch( m )
   {
     case 'top':
     case 'middle':
     case 'baseline':
-      this.text_alignment_vertical = mode;
+      this.text_alignment_vertical = m;
       break;
     default:
-      console.error('Invalid alignment mode specified: ' + mode)
+      console.error('Invalid alignment mode specified: ' + m)
   }
+
+  return this;
 };
 
-
+/**
+ * Sets the text caption to render for this widget
+ */
 Widget.prototype.set_caption = function(t)
 {
-  t = t || '';
+  // set the caption if we have a string
+  if( typeof t === 'string' )
+    this.caption = t;
 
-  this.caption = t;
+  return this;
 };
 
-
-Widget.prototype.set_font = function(f)
+/**
+ * Returns the widgets text caption
+ */
+Widget.prototype.get_caption = function()
 {
-  if( ! f instanceof Font )
-  {
-    console.log('ERROR: Must supply a Font object.');
-    return;
-  }
-
-  this.font = f;
+  return this.caption;
 }
 
+/**
+ * Sets the text font
+ */
+Widget.prototype.set_font = function(f)
+{
+  if( f instanceof Font )
+  {
+    this.font = f;
+    this.get_text_height();
+  }
+  else
+    console.log('ERROR: Must supply a Font object.');
 
+  return this;
+}
+
+/**
+ * Sets the text font color
+ */
 Widget.prototype.set_font_color = function(c)
 {
   if( ! c instanceof Color )
@@ -617,9 +699,13 @@ Widget.prototype.set_font_color = function(c)
   }
 
   this.font_color = c;
+
+  return this;
 }
 
-
+/**
+ * Sets the widget's background image
+ */
 Widget.prototype.set_background_image = function(i)
 {
   if( i instanceof HTMLImageElement )
@@ -639,24 +725,131 @@ Widget.prototype.set_background_image = function(i)
     var self = this;
     this.background_image.onload = function() { self.set_dirty(true); };
   }
+
+  return this;
 }
 
-
+/**
+ * Sets the solid fill background color, we should also offer a set background
+ * gradient to allow for gradient fills
+ */
 Widget.prototype.set_background_color = function(c)
 {
   if( ! c instanceof Color )
   {
-    console.log('ERROR: Must supply a Color object.');
+    console.error('set_backgound_color: Must supply a Color object.');
     return;
   }
 
   this.background_color = c;
+
+  return this;
 }
 
+/**
+ * Set the border flag, toggles rendering of the border
+ */
+Widget.prototype.set_border = function(hasBorder)
+{
+  this.has_border = hasBorder;
+}
+
+/**
+ * Set the border line width
+ */
+Widget.prototype.set_border_width = function(borderWidth)
+{
+  this.border_width = borderWidth;
+}
+
+/**
+ * Set the border corner radius, also used to clip fill color
+ */
+Widget.prototype.set_radius = function(radius)
+{
+  this.radius = radius;
+}
+
+Widget.prototype.set_margins = function(leftMargin, rightMargin, topMargin, bottomMargin)
+{
+  this.left_margin = leftMargin;
+  this.right_margin = rightMargin;
+  this.top_margin = topMargin;
+  this.bottom_margin = bottomMargin;
+}
+
+Widget.prototype.set_left_margin = function(leftMargin)
+{
+  this.left_margin = leftMargin;
+}
+
+Widget.prototype.set_right_margin = function(rightMargin)
+{
+  this.right_margin = rightMargin;
+}
+
+Widget.prototype.set_top_margin = function(topMargin)
+{
+  this.top_margin = topMargin;
+}
+
+Widget.prototype.set_bottom_margin = function(bottomMargin)
+{
+  this.bottom_margin = bottomMargin;
+}
+
+Widget.prototype.set_multi_line_text = function(enabled)
+{
+  this.multi_line_text_enabled = enabled;
+}
+
+Widget.prototype.fill_multi_line_text = function(context, text, x, y)
+{
+  var currentLine = 0; lineHeight = this.text_height;
+  text = text.replace(/(\r\n|\n\r|\r|\n)/g, "\n");
+  lines = text.split('\n');
+
+  var printLine = function(str)
+  {
+    context.fillText(str, x, y + (currentLine * lineHeight));
+    currentLine++;
+  };
+
+  for (var i = 0; i < lines.length; ++i) 
+  {
+    var line = lines[i];
+    var lineWidth = context.measureText(line).width;
+    if(lineWidth > this.bounds.w)
+    {
+      // TODO. Handle this case.
+    }
+    else
+    {
+      printLine(line);
+    }
+  }
+}
+
+Widget.prototype.get_text_height = function()
+{
+  var body = document.getElementsByTagName("body")[0];
+  var heightEl = document.createElement("div");
+  var heightNode = document.createTextNode("M");
+  heightEl.appendChild(heightNode);
+  heightEl.setAttribute("style", this.font);
+  body.appendChild(heightEl);
+  var result = heightEl.offsetHeight;
+  body.removeChild(heightEl);
+  return result;
+}
 
 //
 // EVENT HANDLING
+//
 
+/**
+ * 
+ */
 Widget.prototype.add_event_listener = function(a, cb)
 {
   if( this.valid_events.indexOf(a) === -1 )
@@ -666,6 +859,8 @@ Widget.prototype.add_event_listener = function(a, cb)
   }
 
   this.event_cb[a] = cb;
+
+  return this;
 }
 
 /**
@@ -728,33 +923,52 @@ Widget.prototype.touch_listener = function(e, o, a)
   o.mouse_process(x, y, mouse_type);
 }
 
-
+/**
+ * 
+ */
 Widget.prototype.mouse_process = function(x, y, a)
 {
   var handled = false;
 
-  // ignore invisible and animating widgets
-  if( ! this.visible || this.animate.length > 0 )
+  // ignore invisible widgets
+  if( ! this.visible || this.alpha === 0 )
+    return handled;
+
+  // shortcut mouse moves if the mouse is up
+  // we are a touch framework...
+  if (!this.is_pressed && a == 'mouse_move')
+    return handled;
+
+  // if we don't intersect not should our kids, just say no!
+  // we could check the clipping but I say no you can't play
+  // with the kids outside the parent area...
+  if (! this.bounds.intersects(x,y))
     return handled;
 
   // children need to operate on relative point to current
   var cx = x - this.bounds.x;
   var cy = y - this.bounds.y;
 
-  for( c in this.children )
-    handled |= this.children[c].mouse_process(cx, cy, a);
-
-  if( ! handled && this.bounds.intersects(x,y) )
+  for( var c = this.children.length - 1; c >= 0; c-- )
   {
-    // do system call back
+    handled |= this.children[ c ].mouse_process(cx, cy, a);
+
+    // stop processing children if already handled
+    if( handled )
+      break;
+  }
+
+  if( ! handled )
+  {
+    // execute the system call back
     if( typeof this[a] === 'function' )
       handled |= this[a](x, y);
 
-    // do user call back
+    // execute the user call back
     if( typeof this.event_cb[a] === 'function' )
       handled |= this.event_cb[a](this, x, y);
 
-    // do correlated actions (eg click)
+    // perform correlated actions (eg click)
     switch( a )
     {
       case 'mouse_up':
@@ -762,17 +976,21 @@ Widget.prototype.mouse_process = function(x, y, a)
         {
           if( this.is_dragged )
           {
-            this.mouse_drag_end(x, y);
+            // execute the system callback
+            handled |= this.mouse_drag_end(x, y);
 
+            // execute the user callback
             if( this.event_cb['mouse_drag_end'] )
-              this.event_cb['mouse_drag_end'](this, x, y);
+              handled |= this.event_cb['mouse_drag_end'](this, x, y);
           }
           else
           {
-            this.mouse_click(x, y);
+            // execute the system callback
+            handled |= this.mouse_click(x, y);
 
+            // execute the user callback
             if( this.event_cb['mouse_click'] )
-              this.event_cb['mouse_click'](this, x, y);
+              handled |= this.event_cb['mouse_click'](this, x, y);
           }
         }
 
@@ -795,26 +1013,28 @@ Widget.prototype.mouse_process = function(x, y, a)
           var y_delta = Math.abs(y - this.pressed_y);
           if( this.is_dragged )
           {
-            this.mouse_drag_move(x, y);
+            // execute the system callback
+            handled |= this.mouse_drag_move(x, y);
 
+            // execute the user callback
             if( this.event_cb['mouse_drag_move'] )
-              this.event_cb['mouse_drag_move'](this, x, y);
+              handled |= this.event_cb['mouse_drag_move'](this, x, y);
 
           }
           else if( x_delta > 20 || y_delta > 20 )
           {
             this.is_dragged = true;
-            this.mouse_drag_start(x, y);
 
+            // execute the system callback
+            handled |= this.mouse_drag_start(x, y);
+
+            // execute the user callback
             if( this.event_cb['mouse_drag_start'] )
-              this.event_cb['mouse_drag_start'](this, x, y);
+              handled |= this.event_cb['mouse_drag_start'](this, x, y);
           }
         }
         break;
     }
-
-    // TODO: remove when event bubbling/propogation is controllable
-    handled = true;
   }
   // cancel a mouse down if mouse_up occured out of widget
   else if( this.is_pressed &&
@@ -839,6 +1059,9 @@ Widget.prototype.mouse_process = function(x, y, a)
   return handled;
 }
 
+/**
+ * 
+ */
 Widget.prototype.register_callbacks = function(o)
 {
 }
@@ -852,14 +1075,55 @@ Widget.prototype.mouse_drag_move = function(x, y) {}
 Widget.prototype.mouse_drag_end = function(x, y) {}
 
 
+//
 // PROCESS AND RENDERING
+//
 
+/**
+ * Setup the canvas element and attach the event listeners
+ */
+Widget.prototype.set_canvas = function(canvas)
+{
+  if( ! ( canvas instanceof HTMLCanvasElement ) )
+  {
+    console.log('ERROR: You have not supplied a canvas element.');
+    return;
+  }
+
+  context = canvas.getContext("2d");
+
+  // store for later
+  this.canvas = canvas;
+  this.context = context;
+
+  var self = this;
+
+  // apply our generic listener's to the canvas DOM
+  canvas.addEventListener("touchstart", function(e){ self.touch_listener(e, self, 'touch_start') }, false);
+  canvas.addEventListener("touchmove", function(e){ self.touch_listener(e, self, 'touch_move') }, false);
+  canvas.addEventListener("touchend", function(e){ self.touch_listener(e, self, 'touch_end') }, false);
+  canvas.addEventListener("touch", function(e){ self.touch_listener(e, self, 'touch') }, false);
+  canvas.addEventListener("touchcancel", function(e){ self.touch_listener(e, self, 'touch_cancel') }, false);
+  canvas.addEventListener("mousedown", function(e){ self.mouse_listener(e, self, 'mouse_down') }, false);
+  canvas.addEventListener("mouseup", function(e){ self.mouse_listener(e, self, 'mouse_up') }, false);
+  canvas.addEventListener("mousemove", function(e){ self.mouse_listener(e, self, "mouse_move") }, false);
+  canvas.addEventListener("mouseout", function(e){ self.mouse_listener(e, self, "mouse_out") }, false);
+
+  return this;
+};
+
+/**
+ * Sets the widget dirty, if it is visible try to 
+ * kick off a new update
+ */
 Widget.prototype.set_dirty = function(s)
 {
   this.dirty = s;
 
   if( this.dirty )
     this.get_root().update();
+
+  return this;
 }
 
 Widget.prototype.is_dirty = function()
@@ -956,6 +1220,7 @@ Widget.prototype.render = function(context, x, y)
   // draw the widget
   this.render_widget(context);
 
+  // post process traversal
   for( c in this.children )
     this.children[c].render(context, this.bounds.x, this.bounds.y);
 
@@ -964,6 +1229,15 @@ Widget.prototype.render = function(context, x, y)
   this.dirty = false;
 }
 
+/**
+ * Render the widget, called after we have done the updates.
+ * So we have finished the animations and we now know if the widget is
+ * visible that is the alpha > 0 scale > 0 and visible is true.
+ * Here we clip and then call the render_widget and then render
+ * all of our children.
+ * Once we are done we can set dirty to false because we've rendered the 
+ * current changes.
+ */
 Widget.prototype.render_widget = function(context)
 {
   // draw the widget
@@ -982,10 +1256,12 @@ Widget.prototype.render_widget = function(context)
 
   this.render_caption(context);
 }
-
+/**
+ * Render the widget's text caption
+ */
 Widget.prototype.render_caption = function(context)
 {
-  if( this.caption == '' )
+  if( this.caption === '' )
     return;
 
   var x = this.bounds.x;
@@ -998,10 +1274,11 @@ Widget.prototype.render_caption = function(context)
       context.textAlign = "center";
       break;
     case "right":
-      x += (this.bounds.w);
+      x += (this.bounds.w) - this.right_margin;
       context.textAlign = "right";
       break;
     case "left":
+      x += this.left_margin;
       context.textAlign = "left";
       break;
   }
@@ -1009,6 +1286,7 @@ Widget.prototype.render_caption = function(context)
   switch( this.text_alignment_vertical )
   {
     case "top":
+      y += this.top_margin;
       context.textBaseline = "top";
       break;
     case "middle":
@@ -1017,7 +1295,7 @@ Widget.prototype.render_caption = function(context)
       break;
     case "bottom":
       context.textBaseline = "bottom";
-      y += (this.bounds.h);
+      y += (this.bounds.h) - this.bottom_margin;
       break;
   }
 
@@ -1026,19 +1304,96 @@ Widget.prototype.render_caption = function(context)
   if( this.font_color instanceof Color )
     context.fillStyle = this.font_color.get_rgba(this.alpha);
 
-  context.fillText(this.caption, x, y);
+  if(this.multi_line_text_enabled)
+  {
+    this.fill_multi_line_text(context, this.caption, x, y);
+  }
+  else
+  {
+    context.fillText(this.caption, x, y);
+  }
+}
+/**
+ * render a rounded corner rectangle
+ */
+Widget.prototype.draw_round_rectangle = function(context)
+{
+  context.beginPath();
+  // set pen
+  context.lineWidth = this.border_width;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  if (this.border_width == 0) {
+    context.strokeStyle = "transparent";
+  }
+  else {
+    context.strokeStyle = "black";
+  }
+  if( this.background_color instanceof Color ) {
+    context.fillStyle = this.background_color.get_rgba(this.alpha);
+  }
+  else {
+    context.fillStyle = 'rgba(0,0,0,0)';
+  }
+  var width = this.bounds.w;
+  var height = this.bounds.h;
+  var xPos = this.bounds.x;
+  var yPos = this.bounds.y;
+  // left side
+  context.moveTo(xPos, yPos + this.radius);
+  context.arcTo(xPos, yPos + height, xPos + this.radius, yPos + height, this.radius);
+  // bottom
+  context.arcTo(xPos + width, yPos + height, xPos + width, yPos + height - this.radius, this.radius);
+  // right side
+  context.arcTo(xPos + width, yPos, xPos + width - this.radius, yPos, this.radius);
+  // top
+  context.arcTo(xPos, yPos, xPos, yPos + this.radius, this.radius);
+  context.stroke();
+  context.fill();
+  context.closePath();
+}
+/**
+ * Render a non-rounded corner rectangle
+ */
+Widget.prototype.draw_square_rectangle = function(context)
+{
+  context.beginPath();
+  // set pen
+  context.lineWidth = this.border_width;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.strokeStyle = "black";
+  if( this.background_color instanceof Color ) {
+    context.fillStyle = this.background_color.get_rgba(this.alpha);
+  }
+  var width = this.bounds.w;
+  var height = this.bounds.h;
+  var xPos = this.bounds.x;
+  var yPos = this.bounds.y;
+  // left side
+  context.moveTo(xPos, yPos);
+  context.lineTo(xPos, yPos + height);
+  // bottom
+  context.lineTo(xPos + width, yPos + height);
+  // right side
+  context.lineTo(xPos + width, yPos);
+  // top
+  context.lineTo(xPos, yPos);
+  context.stroke();
+  context.closePath();
 }
 
 
+//
 Widget.prototype.update = function(f)
 {
-  // call root parent if child
+  // call root parent if child (ie rendering always occurs from the root node)
   if( ! this.is_root() )
     return this.get_root().update(f);
 
   f = f || false;
 
-  // skip the update if we have a pending update
+  // skip this update if we have a pending/scheduled update
   if( this.loop_timer != null )
     return;
 

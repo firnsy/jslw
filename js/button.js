@@ -215,6 +215,10 @@ Button.prototype.set_active_type = function(type)
   if ( type == null || type == '' )
     type = '_default';
 
+  // check if we are already active
+  if (this.type_states['active_type'] === type)
+    return;
+
   if ( this.type_states['types'].indexOf(type) == -1 )
   {
     console.error('Type ' + type + ' is not available.');
@@ -251,7 +255,7 @@ Button.prototype.set_type_image_default = function(type, i)
   {
     this.type_states['objects'][type]['_default']['image'] = new Image();
 
-    this.type_states['objects'][type]['_default']['image'].src = path;
+    this.type_states['objects'][type]['_default']['image'].src = i;
     this.type_states['objects'][type]['_default']['image'].onerror = function(){ console.warn("Unable to load image: " + this.src); };
 
     var self = this;
@@ -292,7 +296,7 @@ Button.prototype.set_type_alignment_horizontal = function(type, mode)
       break;
   }
 
-  this.overlay_calculate_offset();
+  this.type_calculate_offset();
 }
 
 
@@ -318,7 +322,7 @@ Button.prototype.set_type_alignment_vertical = function(mode)
       break;
   }
 
-  this.mode_calculate_offset();
+  this.type_calculate_offset();
 }
 
 
@@ -448,25 +452,39 @@ Button.prototype.set_active_state = function(state)
 
   if( ts && ts['animate'] && this.animate.length == 0)
   {
-    // TODO: animations are hard coded, need some user definable animation
-    // frames or frame rect to allow some automagical calculation
+    var frames_w = ts['image'].width / ts['animate_bounds'].w;
+    var frames_h = ts['image'].height / ts['animate_bounds'].h;
+    var frames = frames_w * frames_h;
+
+    var delay = Math.floor(ts['animate_speed'] / ANIMATE_FRAME_TIME_SPACING);
+    if( delay <= 0 )
+      delay = 1;
+
+    // push the animation onto the stack
     this.animate.push({
-      frames:   16,
+      frames:   frames * delay,
       index:    0,
-      loop:     true,
+      loop:     ts['animate_loops'] == -1,
       process:  function(frame) {
-        if( (frame % 2) == 0 )
+        if( (frame % delay) == 0 )
         {
-          ts['animate_bounds'].y += 88;
-          ts['animate_bounds'].y %= 704;
+          // advance in the x (these are noops if vertically stacked only)
+          ts['animate_bounds'].x += ts['animate_bounds'].w;
+          ts['animate_bounds'].x %= ts['bounds'].w;
+
+          // advance in the y (these are noops if horizontally stacked only)
+          if( ts['animate_bounds'].x === 0 ) {
+            ts['animate_bounds'].y += ts['animate_bounds'].h;
+            ts['animate_bounds'].y %= ts['bounds'].h;
+          }
         }
-      },
+      }
     });
   }
-  else {
-    // XXX: fix for button click disable after animation
+  // otherwise ensure animation stack is cleared
+  else
+    // TODO: this is brute force, we should only clear any button state animations
     this.animate = [];
-  }
 
   this.set_dirty(true);
 }
@@ -513,7 +531,7 @@ Button.prototype.set_state_image_default = function(state, i)
 };
 
 
-Button.prototype.set_state_image_animate = function(state, t, l)
+Button.prototype.set_state_image_animate = function(state, s, l)
 {
   if ( this.type_states['states'].indexOf(state) == -1 )
   {
@@ -524,6 +542,8 @@ Button.prototype.set_state_image_animate = function(state, t, l)
   var ts = this.type_states['objects']['_default'][state];
   ts['animate'] = true;
   ts['animate_bounds'] = new Rect(0, 0, this.bounds.w, this.bounds.h);
+  ts['animate_speed'] = s;
+  ts['animate_loops'] = l;
 };
 
 
@@ -641,18 +661,18 @@ Button.prototype.render_widget = function(context)
                           ts['animate_bounds'].y,
                           ts['animate_bounds'].w,
                           ts['animate_bounds'].h,
-                          ts['bounds'].x,
-                          ts['bounds'].y,
-                          ts['bounds'].w,
-                          ts['bounds'].h);
+                          this.bounds.x,
+                          this.bounds.y,
+                          this.bounds.w,
+                          this.bounds.h);
       }
       else
       {
         context.drawImage(ts['image'],
-                          ts['bounds'].x,
-                          ts['bounds'].y,
-                          ts['bounds'].w,
-                          ts['bounds'].h);
+                          this.bounds.x,
+                          this.bounds.y,
+                          this.bounds.w,
+                          this.bounds.h);
       }
     }
   }

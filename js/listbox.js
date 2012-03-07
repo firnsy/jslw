@@ -36,9 +36,12 @@ ListBox = function(p, r, c)
   this.background_image_up = null;
   this.background_image_down = null;
 
-  // storage for the list items
+  // storage for the list text
   this.list = Array();
 
+  // storage of the list data
+  this.data = Array();
+  
   // define the maximum number of items the list can hold
   // n = 0 : unlimited
   // n > 0 : fifo list of length n
@@ -71,9 +74,9 @@ ListBox = function(p, r, c)
 
 ListBox.prototype = new Widget;
 
-
 //
-// ITEMS
+//ITEMS
+//
 ListBox.prototype.set_max_items = function(nitems)
 {
   if (nitems < 0) {
@@ -84,37 +87,139 @@ ListBox.prototype.set_max_items = function(nitems)
 
   return this.max_items;
 }
-
-ListBox.prototype.add_item = function(item)
+/**
+ * Add an item to the beginning of the list
+ */
+ListBox.prototype.insert_item = function(item,data)
 {
   item = item || '';
+  this.list.unshift(item);
+  this.data.unshift(data);
 
-  this.list.push(item);
   if ( (this.max_items > 0) &&
-       (this.list.length > this.max_items) ) {
+      (this.list.length > this.max_items) ) {
     this.list.pop();
+    this.data.pop();
   }
 
   this.list_offset_max = Math.max(0, (this.item_height * this.list.length) - this.item_bounds.h);
+  this.set_dirty(true);
   return this.list.length;
+}
+/**
+ * Add an item to the end of the list
+ */
+ListBox.prototype.add_item = function(item,data)
+{
+  item = item || '';
+  this.list.push(item);
+  this.data.push(data);
+
+  if ( (this.max_items > 0) &&
+      (this.list.length > this.max_items) ) {
+    this.list.shift();
+    this.data.shift();
+  }
+
+  this.list_offset_max = Math.max(0, (this.item_height * this.list.length) - this.item_bounds.h);
+  this.set_dirty(true);
+  return this.list.length;
+}
+
+/**
+ * Add an item to the end of the list if it is different to the current last item
+ */
+ListBox.prototype.add_new_item = function(item,data)
+{
+  if (this.list.length == 0 || this.list[this.list.length - 1] != item) {
+    this.add_item(item,data);
+  }
 }
 
 ListBox.prototype.clear_items = function()
 {
   this.list = [];
+  this.data = [];
   this.item_index_active = -1;
 
+  this.set_dirty(true);
   return this.list.length;
 }
 
+/**
+ * 
+ */
+ListBox.prototype.get_item_text = function(index)
+{
+  if (index == null) return null;
+  if (index >= this.list.length || index < 0) return null
+  return this.list[index];
+}
+
+ListBox.prototype.get_active_item_text = function()
+{
+  return this.get_item_text(this.item_index_active);
+}
+
+ListBox.prototype.get_item_data = function(index)
+{
+  if (index == null) return null;
+  if (index >= this.data.length || index < 0) return null
+  return this.data[index];
+}
+
+ListBox.prototype.get_active_item_data = function()
+{
+  return this.get_item_data(this.item_index_active);
+}
+/**
+ * If the current selection is equal to the index parameter then 
+ * unselect the current active item
+ */
+ListBox.prototype.toggle_item_selection = function(index)
+{
+  if (index == this.item_index_active) {
+    this.item_index_active = -1;
+    this.set_dirty(true);
+  }
+  return this.item_index_active;
+}
+/**
+ * Deletes the item at index specified
+ * Moves the active item index.
+ * if the deletion is the active item reset the active item
+ * if the deletion is before the active item decrement the active item
+ */
+ListBox.prototype.clear_item = function(index)
+{
+  if (index == null) return null;
+  if (index >= this.data.length || index < 0) return null;
+  if (this.item_index_active == index) {
+    this.item_index_active = -1;
+  }
+  else if (this.item_index_active > index) {
+    this.item_index_active--;
+  }
+
+  this.list.splice(index,1);
+  this.data.splice(index,1);
+  this.set_dirty(true);
+}
+/**
+ * Deletes the current active item
+ */
+ListBox.prototype.clear_active_item = function()
+{
+  return this.clear_item(this.item_index_active);
+}
 
 //
 // EVENTS
+//
 
 ListBox.prototype.mouse_drag_start = function(x, y)
 {
   this.drag_origin.set(x, y);
-  this.drag_stride = this.bounds.h / (this.list.length - this.item_visible_count + 1) / 2;
 
   // fade in scrollbar
   if( this.slider instanceof Widget )
@@ -124,7 +229,6 @@ ListBox.prototype.mouse_drag_start = function(x, y)
   }
 
 }
-
 
 ListBox.prototype.mouse_drag_move = function(x, y)
 {
@@ -144,7 +248,6 @@ ListBox.prototype.mouse_drag_move = function(x, y)
   }
 }
 
-
 ListBox.prototype.mouse_drag_end = function(x, y)
 {
   // fade out scrollbar
@@ -153,7 +256,6 @@ ListBox.prototype.mouse_drag_end = function(x, y)
     this.slider.fadeOut(200);
   }
 }
-
 
 ListBox.prototype.mouse_click = function(x, y)
 {
@@ -166,7 +268,8 @@ ListBox.prototype.mouse_click = function(x, y)
 }
 
 //
-// STYLING
+//STYLING
+//
 
 ListBox.prototype.add_slider = function(slider)
 {
@@ -178,7 +281,6 @@ ListBox.prototype.add_slider = function(slider)
   this.slider.bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider.bounds.h) / this.list_offset_max);
 
 }
-
 
 ListBox.prototype.set_item_height = function(height)
 {
@@ -197,7 +299,6 @@ ListBox.prototype.set_item_height = function(height)
   this.list_offset_max = Math.max(0, (this.item_height * this.list.length) - this.item_bounds.h);
 }
 
-
 ListBox.prototype.set_active_font = function(f)
 {
   if( ! f instanceof Font )
@@ -208,7 +309,6 @@ ListBox.prototype.set_active_font = function(f)
 
   this.active_font = f;
 }
-
 
 ListBox.prototype.set_active_font_color = function(c)
 {
@@ -221,7 +321,6 @@ ListBox.prototype.set_active_font_color = function(c)
   this.active_font_color = c;
 }
 
-
 ListBox.prototype.set_active_color = function(c)
 {
   if( ! c instanceof Color )
@@ -233,9 +332,10 @@ ListBox.prototype.set_active_color = function(c)
   this.active_color = c;
 }
 
-
 //
-// RENDERING
+//RENDERING
+//
+
 ListBox.prototype.render_widget = function(context)
 {
   // draw the widget
