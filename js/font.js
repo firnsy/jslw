@@ -19,31 +19,144 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-//
-// IMPLEMENTATION
-//
-
-function Font(f)
-{
-  "use strict";
-
-  if( !f || !(f = Font.get_filtered_object(f)) )
+var Font = Base.extend({
+  //
+  // CONSTRUCTOR
+  constructor: function(font)
   {
-    console.error('Invalid font object definition!');
-    return false;
-  }
+    "use strict";
 
-  this.size = f.size;
-  this.family = f.family;
-  this.bold = f.bold;
-  this.italic = f.italic;
-  this.style = '';
-  this.font = this.get_font();
+    if( !font || !(font = Font.get_filtered_object(font)) )
+    {
+      console.error('Font: Invalid font object definition!');
+      return false;
+    }
 
-  return this;
-}
+    this.family = font.family;
+    this.size   = font.size;
+    this.bold   = font.bold;
+    this.italic = font.italic;
+
+    this._update();
+
+    return this;
+  },
+
+  //
+  // VARIABLES
+  size:   12,
+  family: 'sans-serif',
+  bold:   false,
+  italic: false,
+
+  //
+  // PUBLIC METHODS
+
+  add_family: function(family)
+  {
+    "use strict";
+
+    if( family !== '' )
+    {
+      this.family.push(family);
+      this._update();
+    }
+    else
+      console.warn('Font.add_family: Font family was not added.');
+
+    return this;
+  },
 
 
+  remove_family: function(family)
+  {
+    "use strict";
+
+    if( family in this.family )
+    {
+      this.family.remove(family);
+      this._update();
+    }
+    else
+      console.warn('Font.remove_family: Font family does not exist.');
+
+    return this;
+  },
+
+
+  set_bold: function(state)
+  {
+    "use strict";
+
+    this.bold = state ? true : false;
+    this._update();
+
+    return this;
+  },
+
+
+  set_italic: function(state)
+  {
+    "use strict";
+
+    this.italic = state ? true : false;
+    this._update();
+
+    return this;
+  },
+
+
+  set_size: function(size)
+  {
+    "use strict";
+
+    size = parseInt(size, 10);
+
+    if( size > 0 )
+    {
+      this.size = size;
+      this._update();
+    }
+    else
+      console.warn('Font.set_size: size must be a postive integer');
+
+    return this;
+  },
+
+  get_font: function()
+  {
+    "use strict";
+
+    return this._font;
+  },
+
+  toString: function()
+  {
+    "use strict";
+
+    return '{family:' + this.family.join(',') + ', size:' + this.size + ', bold:' + this.bold + ', italic:' + this.italic + '}';
+  },
+
+  //
+  // PRIVATE METHODS
+  _update: function()
+  {
+    "use strict";
+
+    var style = '';
+
+    if( this.bold )
+      style += 'bold ';
+
+    if( this.italic )
+      style += 'italic ';
+
+    this._font = style + this.size + 'px ' + this.family.join(',');
+  },
+});
+
+
+// TODO: determine cleanest way to add static methods to base object
 Font.get_filtered_object = function(str)
 {
   "use strict";
@@ -62,97 +175,3 @@ Font.get_filtered_object = function(str)
   return false;
 };
 
-
-Font.prototype.check = function()
-{
-  "use strict";
-
-  if( this.size <= 0 )
-    this.size = 1;
-
-  this.style = '';
-
-  if( this.bold )
-    this.style += 'bold ';
-
-  if( this.italic )
-    this.style += 'italic ';
-};
-
-
-Font.prototype.add_family = function(f)
-{
-  "use strict";
-
-  if( f !== '' )
-    this.family.push(f);
-
-  return this;
-};
-
-
-Font.prototype.remove_family = function(f)
-{
-  "use strict";
-
-  if( f in this.family )
-    this.family.remove(f);
-  else
-    console.warn('Font family was not added.');
-
-  return this;
-};
-
-
-Font.prototype.set_bold = function(s)
-{
-  "use strict";
-
-  this.bold = s ? true : false;
-  this.check();
-
-  return this;
-};
-
-
-Font.prototype.set_italic = function(s)
-{
-  "use strict";
-
-  this.italic = s ? true : false;
-  this.check();
-
-  return this;
-};
-
-
-Font.prototype.set_size = function(s)
-{
-  "use strict";
-
-  s = parseInt(s, 10);
-
-  if( s > 0 )
-    this.size = s;
-
-  return this;
-};
-
-
-Font.prototype.get_font = function()
-{
-  "use strict";
-
-  this.check();
-  this.font = this.style + this.size + 'px ' + this.family.join(',');
-
-  return this.font;
-};
-
-
-Font.prototype.toString = function()
-{
-  "use strict";
-
-  return '{family:' + this.family.join(',') + ', size:' + this.size + ', bold:' + this.bold + ', italic:' + this.italic + '}';
-};

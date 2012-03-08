@@ -24,7 +24,8 @@ function demo_run()
   b2 = new ListBox(w, new Rect(150, 50, 500, 300));
   b2.set_background_color(new Color('#007f7f'));
   b2.set_item_height(40);
-  b2.set_font('24px sans-serif');
+  b2.set_font(new Font('24px sans-serif'));
+  b2.set_active_font('24px sans-serif');
   b2.set_font_color(new Color('#fff'));
   b2.add_item('item 0');
   b2.add_item('item 1');
@@ -41,6 +42,6 @@ function demo_run()
   // force update of all widgets
   w.update(true);
 
- setTimeout(function() { b11.slideOut('right', 4000) } , 2500);
- setTimeout(function() { b1.slideOut('down', 4000); } , 2750);
+ setTimeout(function() { b11.slideOut('right', 400) } , 2500);
+ setTimeout(function() { b1.slideOut('down', 400); } , 2750);
 }

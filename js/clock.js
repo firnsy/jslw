@@ -19,51 +19,31 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-//
-// IMPLEMENTATION
-//
+var Clock = Widget.extend({
+  constructor: function(p, r, c, u)
+  {
+    // call our super constructor
+    this.base.apply(this, arguments);
 
-function Clock(p, r, c, u)
-{
-  // call our super constructor
-  this.base = Widget.prototype;
-  Widget.apply(this, arguments);
+    this.seconds = false;
+    this.utc = true;
 
-  this.seconds = false;
+    this._timer_id = null;
+  },
 
-  this.time_interval = 60 * 1000;
-  this.timer_id = null;
-  this.utc = true;
+  update_time: function()
+  {
+    var d = new Date();
 
-  this.register_callbacks(this);
-}
+    var h = '00' + ( this.utc ) ? d.getUTCHours() : d.getHours();
+    var m = '00' + ( this.utc ) ? d.getUTCMinutes() : d.getMinutes();
+    var s = '00' + ( this.utc ) ? d.getUTCSeconds() : d.getSeconds();
 
+    this.set_caption(h.slice(-2) + ':' + m.slice(-2));
+    this.set_dirty(true);
 
-Clock.prototype = new Widget();
-
-
-Clock.prototype.set_interval = function(t)
-{
-  t = parseInt(t, 10);
-
-  if( t > 0 )
-    this.time_interval = t * 1000;
-}
-
-
-Clock.prototype.update_time = function()
-{
-  var d = new Date();
-
-  var h = '00' + ( this.utc ) ? d.getUTCHours() : d.getHours();
-  var m = '00' + ( this.utc ) ? d.getUTCMinutes() : d.getMinutes();
-  var s = '00' + ( this.utc ) ? d.getUTCSeconds() : d.getSeconds();
-
-  var i = (60 - ( s % 60 )) * 1000;
-
-  this.set_caption(h.slice(-2) + ':' + m.slice(-2));
-  this.set_dirty(true);
-
-  var self = this;
-  this.timer_id = setTimeout( function() { self.update_time(); }, i );
-}
+    var i = (60 - ( s % 60 )) * 1000;
+    var self = this;
+    this._timer_id = setTimeout( function() { self.update_time(); }, i );
+  },
+});
