@@ -55,6 +55,7 @@ var Widget = Base.extend({
 
     // track widget heirarchy
     this.root = false;
+    this._parent = null;
     this.children = [];
 
     // base characteristics
@@ -115,19 +116,25 @@ var Widget = Base.extend({
     this.text_height = this.get_text_height();
   },
 
+  _parent: null,
+  root:   null,
+
+
   //
   // PUBLIC METHODS
   //
 
   /**
-   * 
+   *
    */
   get_root: function()
   {
-    if( this.root || ! ( this.parent instanceof Widget ) )
+    if( this.root )
       return this;
-
-    return this.parent.get_root();
+    else if( ! ( this._parent instanceof Widget ) )
+      return null;
+    else
+      return this._parent.get_root();
   },
 
   is_root: function()
@@ -136,11 +143,11 @@ var Widget = Base.extend({
   },
 
   /**
-   * 
+   *
    */
   set_root: function()
   {
-    if( this.parent instanceof Widget )
+    if( this._parent instanceof Widget )
       console.warn('set_root: This widget has a parent.');
 
     this.root = true;
@@ -156,7 +163,8 @@ var Widget = Base.extend({
     // add widget as parent object if appropriate
     if( p instanceof Widget )
     {
-      this.parent = p;
+      this._parent = p;
+      this.root_widget = this.get_root();
 
       p.add_child(this);
     }
@@ -181,7 +189,7 @@ var Widget = Base.extend({
 
   get_ancestor_length: function()
   {
-    return 1 + ( this.parent instanceof Widget ? this.parent.get_ancestor_length() : 0 );
+    return 1 + ( this._parent instanceof Widget ? this._parent.get_ancestor_length() : 0 );
   },
 
   //
@@ -204,7 +212,7 @@ var Widget = Base.extend({
   },
 
   /**
-   * Ask the question can we be seen? If our scale or 
+   * Ask the question can we be seen? If our scale or
    * alpha are small enough then we can't. Also if the
    * visible boolean is false we are not rendered
    */
@@ -362,7 +370,7 @@ var Widget = Base.extend({
         break;
       case "right":
         delta = new Vector2(
-          -Math.ceil((this.parent.bounds.w - this.bounds.x) / animate_frames),
+          -Math.ceil((this._parent.bounds.w - this.bounds.x) / animate_frames),
           0
         );
         break;
@@ -375,7 +383,7 @@ var Widget = Base.extend({
       case "down":
         delta = new Vector2(
           0,
-          -Math.ceil((this.parent.bounds.h - this.bounds.y) / animate_frames)
+          -Math.ceil((this._parent.bounds.h - this.bounds.y) / animate_frames)
         );
         break;
       default:
@@ -444,7 +452,7 @@ var Widget = Base.extend({
         break;
       case "right":
         offset_final = new Vector2(
-          Math.ceil(this.parent.bounds.w - this.bounds.x),
+          Math.ceil(this._parent.bounds.w - this.bounds.x),
           0
         );
         break;
@@ -457,7 +465,7 @@ var Widget = Base.extend({
       case "down":
         offset_final = new Vector2(
           0,
-          Math.ceil(this.parent.bounds.h - this.bounds.y)
+          Math.ceil(this._parent.bounds.h - this.bounds.y)
         );
         break;
       default:
@@ -1391,8 +1399,11 @@ var Widget = Base.extend({
     // call root parent if child (ie rendering always occurs from the root node)
     if( ! this.is_root() )
     {
-      console.error('Widget.update: Update must be called from the root widget.');
-      return;
+      var r = this.get_root();
+      if( r )
+        r.update(f);
+      else
+        console.log('No root found for Widget: ' + this.toString());
     }
 
     f = f || false;

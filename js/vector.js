@@ -19,70 +19,70 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-//
-// IMPLEMENTATION
-//
-
-function Vector2(x, y)
-{
-  this.set(x, y);
-}
-
-
-Vector2.prototype.set = function(x, y)
-{
-  // check if first parameter is a Vector2
-  if( x instanceof Vector2 )
+var Vector2 = Base.extend({
+  constructor: function(x, y)
   {
-    this.x = x.x;
-    this.y = x.y;
-  }
-  else
+    this.set(x, y);
+  },
+
+  //
+  // PUBLICE METHODS
+  //
+
+  set: function(x, y)
   {
-    this.x = x + 0;
-    this.y = y + 0;
-  }
+    // check if first parameter is a Vector2
+    if( x instanceof Vector2 )
+    {
+      this.x = x.x;
+      this.y = x.y;
+    }
+    else
+    {
+      this.x = x + 0;
+      this.y = y + 0;
+    }
 
-  return this;
-};
+    return this;
+  },
 
 
-Vector2.prototype.translate = function(x, y)
-{
-  // check if first parameter is a Vector2
-  if( x instanceof Vector2 )
+  translate: function(x, y)
   {
-    this.x += x.x;
-    this.y += x.y;
-  }
-  else
+    // check if first parameter is a Vector2
+    if( x instanceof Vector2 )
+    {
+      this.x += x.x;
+      this.y += x.y;
+    }
+    else
+    {
+      this.x += x;
+      this.y += y;
+    }
+
+    return this;
+  },
+
+  difference: function(v)
   {
-    this.x += x;
-    this.y += y;
-  }
+    if (v instanceof Vector2)
+    {
+      this.x = this.x - v.x;
+      this.y = this.y - v.y;
+    }
+  },
 
-  return this;
-};
-
-Vector2.prototype.difference = function(v)
-{
-  if (v instanceof Vector2)
+  scale: function(s)
   {
-    this.x = this.x - v.x;
-    this.y = this.y - v.y;
-  }
-}
+    this.x *= s;
+    this.y *= s;
 
-Vector2.prototype.scale = function(s)
-{
-  this.x *= s;
-  this.y *= s;
+    return this;
+  },
 
-  return this;
-};
-
-
-Vector2.prototype.toString = function()
-{
-  return '{x:' + this.x + ', y:' + this.y + '}';
-};
+  toString: function()
+  {
+    return '{x:' + this.x + ', y:' + this.y + '}';
+  },
+});

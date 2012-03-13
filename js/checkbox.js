@@ -33,8 +33,8 @@ var CheckBox = Widget.extend({
 
     this.checked = false;
 
-    this.set_type_alignment_horizontal('center');
-    this.set_type_alignment_vertical('middle');
+    this.set_text_alignment_horizontal('center');
+    this.set_text_alignment_vertical('middle');
 
     // overlay
     this.overlay = null;
@@ -137,8 +137,16 @@ var CheckBox = Widget.extend({
       this.overlay.y = this.bounds.y;
     }
 
-    this.overlay.w = this.overlay_image.width || this.overlay.w;
-    this.overlay.h = this.overlay_image.height || this.overlay.h;
+    if( this.overlay_image )
+    {
+      this.overlay.w = this.overlay_image.width;
+      this.overlay.h = this.overlay_image.height;
+    }
+    else
+    {
+      this.overlay.w = this.overlay.w;
+      this.overlay.h = this.overlay.h;
+    }
 
     // horizontal alignment
     switch( this.overlay_alignment_horizontal )

@@ -23,7 +23,7 @@ var Slider = Widget.extend({
   constructor: function(p, r, c)
   {
     // call our super constructor
-    this.base.apply(this,arguments);
+    this.base.apply(this, arguments);
 
     this.background_image_up = null;
     this.background_image_down = null;
@@ -38,7 +38,7 @@ var Slider = Widget.extend({
     this.add_event_listener('mouse_down', dirtify);
     this.add_event_listener('mouse_drag_end', dirtify);
     this.add_event_listener('mouse_drag_move', dirtify);
-  }
+  },
 
   //
   // PUBLIC METHODS

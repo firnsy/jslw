@@ -35,9 +35,9 @@ var Clock = Widget.extend({
   {
     var d = new Date();
 
-    var h = '00' + ( this.utc ) ? d.getUTCHours() : d.getHours();
-    var m = '00' + ( this.utc ) ? d.getUTCMinutes() : d.getMinutes();
-    var s = '00' + ( this.utc ) ? d.getUTCSeconds() : d.getSeconds();
+    var h = '00' + ( ( this.utc ) ? d.getUTCHours() : d.getHours() );
+    var m = '00' + ( ( this.utc ) ? d.getUTCMinutes() : d.getMinutes() );
+    var s = '00' + ( ( this.utc ) ? d.getUTCSeconds() : d.getSeconds() );
 
     this.set_caption(h.slice(-2) + ':' + m.slice(-2));
     this.set_dirty(true);

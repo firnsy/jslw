@@ -19,44 +19,253 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-//
-// IMPLEMENTATION
-//
+var Color = Base.extend({
 
-/*
- *     Converts INT to HEX
- *         If Prototype library is loaded, use theirs, else use ours.
- *         */
-Number.prototype.toColorPart = function()
-{
-  "use strict";
+  /*
+   *     Constructor
+   *         @String c : hexadecimal, shorthand hex, or rgb()
+   *             #returns : Object reference to instance or false
+   *             */
+  constructor: function(c)
+  {
+    "use strict";
 
-  return ((this < 16 ? '0' : '') + this.toString(16));
-};
+    if( !c || !(c = Color.get_filtered_object(c)) )
+      return false;
 
-/*
- *     Constructor
- *         @String c : hexadecimal, shorthand hex, or rgb()
- *             #returns : Object reference to instance or false
- *             */
-function Color(c)
-{
-  "use strict";
+    this.original = c;
+    this.r = c.r;
+    this.g = c.g;
+    this.b = c.b;
+    this.a = 1.0;
+    this.check();
+    this.gray = Math.round(0.3*this.r + 0.59*this.g + 0.11*this.b);
+    this.hex = this.get_hex();
+    this.rgb = this.get_rgb();
+    return this;
+  },
 
-  if( !c || !(c = Color.get_filtered_object(c)) )
-    return false;
 
-  this.original = c;
-  this.r = c.r;
-  this.g = c.g;
-  this.b = c.b;
-  this.a = 1.0;
-  this.check();
-  this.gray = Math.round(0.3*this.r + 0.59*this.g + 0.11*this.b);
-  this.hex = this.get_hex();
-  this.rgb = this.get_rgb();
-  return this;
-}
+  /*
+   *     Checks the internal RGB registers for out of range values.
+   *         Resets out of range values.
+   *             #returns : Object reference to instance
+   *             */
+  check: function()
+  {
+    "use strict";
+
+    if( this.r > 255 )
+      this.r = 255;
+    else if( this.r < 0 )
+      this.r = 0;
+
+    if( this.g > 255 )
+      this.g = 255;
+    else if( this.g < 0 )
+      this.g = 0;
+
+    if( this.b > 255 )
+      this.b = 255;
+    else if( this.b < 0 )
+      this.b = 0;
+
+    return this;
+  },
+
+  /*
+   *     Resets color to the original color passed to the constructor.
+   *         #returns : Object reference to instance
+   *         */
+  revert: function()
+  {
+    "use strict";
+
+    this.r = this.original.r;
+    this.g = this.original.g;
+    this.b = this.original.b;
+
+    return this;
+  },
+
+  /*
+   *     Inverts the color.
+   *         Black to White, vice versa
+   *             #returns : Object reference to instance
+   *             */
+  invert: function()
+  {
+    "use strict";
+
+    this.check();
+    this.r = 255 - this.r;
+    this.g = 255 - this.g;
+    this.b = 255 - this.b;
+
+    return this;
+  },
+
+  /*
+   *     Lightens the color.
+   *         @Int amount : 1-254 -- RGB amount to lighten the color
+   *             #returns : Object reference to instance
+   *             */
+  lighten: function(amount)
+  {
+    "use strict";
+
+    amount = parseInt(amount, 10);
+
+    this.r += amount;
+    this.g += amount;
+    this.b += amount;
+
+    return this;
+  },
+
+  /*
+   *     Darkens the color.
+   *         @Int amount : 1-254 -- RGB amount to darken the color
+   *             #returns : Object reference to instance
+   *             */
+  darken: function(amount)
+  {
+    "use strict";
+
+    amount = parseInt(amount, 10);
+
+    this.r -= amount;
+    this.g -= amount;
+    this.b -= amount;
+
+    return this;
+  },
+
+  /*
+   *     Converts the color to Grayscale
+   *         #returns : Object reference to instance
+   *         */
+  grayscale: function()
+  {
+    "use strict";
+
+    this.check();
+    this.gray = Math.round(0.3*this.r + 0.59*this.g + 0.11*this.b);
+    this.r=this.gray;
+    this.g=this.gray;
+    this.b=this.gray;
+
+    return this;
+  },
+
+  /*
+   *     Convenience function for lightening color.
+   *         @Int amount : amount to lighten color
+   *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
+   *                 #returns : String color
+   *                 */
+  get_lighter: function(amount, returnRGB)
+  {
+    "use strict";
+
+    return this.lighten(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
+  },
+
+  /*
+   *     Convenience function for darkening color.
+   *         @Int amount : amount to darken color
+   *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
+   *                 #returns : String color
+   *                 */
+  get_darker: function(amount, returnRGB)
+  {
+    "use strict";
+
+    return this.darken(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
+  },
+
+  /*
+   *     Convenience function for grayscaling color.
+   *         @Bool returnRGB : true uses RGB return string, false uses HEX return string.
+   *             #returns : String color
+   *             */
+  get_grayscale: function(returnRGB)
+  {
+    "use strict";
+
+    this.grayscale();
+
+    return (returnRGB ? ('rgb('+this.gray+','+this.gray+','+this.gray+')') : this.gray.toColorPart().replace(/^([\da-f]{2})$/i, "#$1$1$1"));
+  },
+
+  /*
+   *     Convenience function for inverting color.
+   *         @Bool returnRGB : true uses RGB return string, false uses HEX return string.
+   *             #returns : String color
+   *             */
+  get_inverted: function(returnRGB)
+  {
+    "use strict";
+
+    return this.invert()[returnRGB ? 'getRGB' : 'getHex']();
+  },
+
+  /*
+   *     Gets the rgb(x,x,x) value of the color
+   *         #returns : String rgb color
+   *         */
+  get_rgb: function()
+  {
+    "use strict";
+
+    this.check();
+    this.rgb = 'rgb('+this.r+','+this.g+','+this.b+')';
+
+    return this.rgb;
+  },
+
+  /*
+   *     Gets the rgb(x,x,x) value of the color
+   *         #returns : String rgb color
+   *         */
+  get_rgba: function(alpha)
+  {
+    "use strict";
+
+    alpha = alpha || this.alpha;
+
+    this.check();
+
+    return 'rgba('+this.r+','+this.g+','+this.b+','+alpha+')';
+  },
+
+
+  /*
+   *     Gets the hex value of the color
+   *         @Bool shorthandReturnAcceptable : true will return #333 instead of #333333
+   *             #returns : String hex color
+   *             */
+  get_hex: function(shorthandReturnAcceptable)
+  {
+    "use strict";
+
+    this.check();
+    this.hex = '#' + this.r.toColorPart() + this.g.toColorPart() + this.b.toColorPart();
+
+    if( shorthandReturnAcceptable )
+      return this.hex.replace(/^#([\da-f])\1([\da-f])\2([\da-f])\3$/i, "#$1$2$3");
+
+    return this.hex;
+  },
+
+
+  toString: function()
+  {
+    "use strict";
+
+    return '{r:' + this.r + ', g:' + this.g + ', b:' + this.b+ '}';
+  },
+});
 
 /*
  *     Screens color strings.
@@ -88,221 +297,13 @@ Color.get_filtered_object = function(str)
 };
 
 /*
- *     Checks the internal RGB registers for out of range values.
- *         Resets out of range values.
- *             #returns : Object reference to instance
- *             */
-Color.prototype.check = function()
-{
-  "use strict";
-
-  if( this.r > 255 )
-    this.r = 255;
-  else if( this.r < 0 )
-    this.r = 0;
-
-  if( this.g > 255 )
-    this.g = 255;
-  else if( this.g < 0 )
-    this.g = 0;
-
-  if( this.b > 255 )
-    this.b = 255;
-  else if( this.b < 0 )
-    this.b = 0;
-
-  return this;
-};
-
-/*
- *     Resets color to the original color passed to the constructor.
- *         #returns : Object reference to instance
+ *     Converts INT to HEX
+ *         If Prototype library is loaded, use theirs, else use ours.
  *         */
-Color.prototype.revert = function()
+Number.prototype.toColorPart = function()
 {
   "use strict";
 
-  this.r = this.original.r;
-  this.g = this.original.g;
-  this.b = this.original.b;
-
-  return this;
+  return ((this < 16 ? '0' : '') + this.toString(16));
 };
 
-/*
- *     Inverts the color.
- *         Black to White, vice versa
- *             #returns : Object reference to instance
- *             */
-Color.prototype.invert = function()
-{
-  "use strict";
-
-  this.check();
-  this.r = 255 - this.r;
-  this.g = 255 - this.g;
-  this.b = 255 - this.b;
-
-  return this;
-};
-
-/*
- *     Lightens the color.
- *         @Int amount : 1-254 -- RGB amount to lighten the color
- *             #returns : Object reference to instance
- *             */
-Color.prototype.lighten = function(amount)
-{
-  "use strict";
-
-  amount = parseInt(amount, 10);
-
-  this.r += amount;
-  this.g += amount;
-  this.b += amount;
-
-  return this;
-};
-
-/*
- *     Darkens the color.
- *         @Int amount : 1-254 -- RGB amount to darken the color
- *             #returns : Object reference to instance
- *             */
-Color.prototype.darken = function(amount)
-{
-  "use strict";
-
-  amount = parseInt(amount, 10);
-
-  this.r -= amount;
-  this.g -= amount;
-  this.b -= amount;
-
-  return this;
-};
-
-/*
- *     Converts the color to Grayscale
- *         #returns : Object reference to instance
- *         */
-Color.prototype.grayscale = function()
-{
-  "use strict";
-
-  this.check();
-  this.gray = Math.round(0.3*this.r + 0.59*this.g + 0.11*this.b);
-  this.r=this.gray;
-  this.g=this.gray;
-  this.b=this.gray;
-
-  return this;
-};
-
-/*
- *     Convenience function for lightening color.
- *         @Int amount : amount to lighten color
- *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
- *                 #returns : String color
- *                 */
-Color.prototype.get_lighter = function(amount, returnRGB)
-{
-  "use strict";
-
-  return this.lighten(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
-};
-
-/*
- *     Convenience function for darkening color.
- *         @Int amount : amount to darken color
- *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
- *                 #returns : String color
- *                 */
-Color.prototype.get_darker = function(amount, returnRGB)
-{
-  "use strict";
-
-  return this.darken(amount).check()[returnRGB ? 'getRGB' : 'getHex']();
-};
-
-/*
- *     Convenience function for grayscaling color.
- *         @Bool returnRGB : true uses RGB return string, false uses HEX return string.
- *             #returns : String color
- *             */
-Color.prototype.get_grayscale = function(returnRGB)
-{
-  "use strict";
-
-  this.grayscale();
-
-  return (returnRGB ? ('rgb('+this.gray+','+this.gray+','+this.gray+')') : this.gray.toColorPart().replace(/^([\da-f]{2})$/i, "#$1$1$1"));
-};
-
-/*
- *     Convenience function for inverting color.
- *         @Bool returnRGB : true uses RGB return string, false uses HEX return string.
- *             #returns : String color
- *             */
-Color.prototype.get_inverted = function(returnRGB)
-{
-  "use strict";
-
-  return this.invert()[returnRGB ? 'getRGB' : 'getHex']();
-};
-
-/*
- *     Gets the rgb(x,x,x) value of the color
- *         #returns : String rgb color
- *         */
-Color.prototype.get_rgb = function()
-{
-  "use strict";
-
-  this.check();
-  this.rgb = 'rgb('+this.r+','+this.g+','+this.b+')';
-
-  return this.rgb;
-};
-
-/*
- *     Gets the rgb(x,x,x) value of the color
- *         #returns : String rgb color
- *         */
-Color.prototype.get_rgba = function(alpha)
-{
-  "use strict";
-
-  alpha = alpha || this.alpha;
-
-  this.check();
-
-  return 'rgba('+this.r+','+this.g+','+this.b+','+alpha+')';
-};
-
-
-/*
- *     Gets the hex value of the color
- *         @Bool shorthandReturnAcceptable : true will return #333 instead of #333333
- *             #returns : String hex color
- *             */
-Color.prototype.get_hex = function(shorthandReturnAcceptable)
-{
-  "use strict";
-
-  this.check();
-  this.hex = '#' + this.r.toColorPart() + this.g.toColorPart() + this.b.toColorPart();
-
-  if( shorthandReturnAcceptable )
-    return this.hex.replace(/^#([\da-f])\1([\da-f])\2([\da-f])\3$/i, "#$1$2$3");
-
-  return this.hex;
-};
-
-
-Color.prototype.toString = function()
-{
-  "use strict";
-
-  return '{r:' + this.r + ', g:' + this.g + ', b:' + this.b+ '}';
-};
