@@ -24,6 +24,7 @@ var TabMap = Widget.extend({
   {
     // call our super constructure
     this.base.apply(this, arguments);
+    this._type = 'TabMap';
 
     this.background_image_up = null;
     this.background_image_down = null;

@@ -25,10 +25,15 @@ var Widget = Base.extend({
   // MEMBERS
   //
 
+  _type:    'Widget',
+
   _parent:  null,
   _root:    null,
   root:     false,
   children: [],
+
+  visible:  true,
+  _tag:     '',
 
   /**
    * @constructor
@@ -1199,12 +1204,13 @@ var Widget = Base.extend({
       this.animate = this.animate.filter( function(v){ return (v !== undefined); } );
 
       // mark this control as dirty due to an animation occuring
+      console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Marking dirty ' + this.toString());
       this.dirty = true;
 
       // mark the parent of this widget dirty also, but don't force an update since
       // we're in the middle of an update
-      if( this._parent )
-        this._parent.set_dirty(true, false);
+//      if( this._parent )
+//        this._parent.set_dirty(true, false);
     }
 
     // track dirty states of children
@@ -1219,11 +1225,13 @@ var Widget = Base.extend({
 
   render: function(context, x, y)
   {
-    if( ! ( context instanceof CanvasRenderingContext2D ) )
+    console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Preparing to rendering: ' + this.toString() );
+
+    if( ! ( context instanceof CanvasRenderingContext2D ) ||
+        ! this.visible )
       return;
 
-    if( ! this.visible )
-      return;
+    console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Rendering...');
 
     // save our context
     context.save();
@@ -1244,7 +1252,7 @@ var Widget = Base.extend({
     }
 
     // draw the widget if we're actually dirty
-    if( this.dirty )
+    // if( this.dirty )
       this.render_widget(context);
 
     // post process traversal
@@ -1421,6 +1429,8 @@ var Widget = Base.extend({
     if( ! this.is_root() )
       return this._root.update(f);
 
+    console.log('Updating...');
+
     f = f || false;
 
     // skip this update if we have a pending/scheduled update
@@ -1443,5 +1453,10 @@ var Widget = Base.extend({
       if( this._loop_timer == null )
         this._loop_timer = setTimeout( function(){ self._loop_timer = null; self.update(); }, ANIMATE_FRAME_TIME_SPACING);
     }
+  },
+
+  toString: function()
+  {
+    return this._type + ' { visible: ' + this.visible +  ', bounds: ' + this.bounds.toString() + ' }';
   }
 });

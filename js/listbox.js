@@ -30,6 +30,7 @@ var ListBox = Widget.extend({
   {
     // call our super constructor
     this.base.apply(this, arguments);
+    this._type = 'ListBox';
 
     this.background_image_up = null;
     this.background_image_down = null;

@@ -24,6 +24,7 @@ var SlidingCheckBox = Widget.extend({
   {
     // call our super constructor
     this.base.apply(this, arguments);
+    this._type = 'SlidingCheckBox';
 
     this.checked = false;
 

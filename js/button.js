@@ -53,6 +53,8 @@ var Button = Widget.extend({
 
     // turn of clipping to handle the overlay
     this.clip = false;
+
+    this._type = 'Button';
   },
 
 
