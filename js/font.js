@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-var Font = Base.extend({
+var Font = Base.extend({ // INSTANCE INTERFACE
   //
   // CONSTRUCTOR
   constructor: function(font)
@@ -153,25 +153,22 @@ var Font = Base.extend({
 
     this._font = style + this.size + 'px ' + this.family.join(',');
   },
-});
-
-
-// TODO: determine cleanest way to add static methods to base object
-Font.get_filtered_object = function(str)
-{
-  "use strict";
-
-  if( /^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i.test(str) )
+}, { // INSTANCE INTERFACE
+  get_filtered_object: function(str)
   {
-    str = str.match(/^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i);
-    return {
-      bold: ( str[1] === 'bold' || str[2] === 'bold' ) ? true : false,
-      italic: ( str[1] === 'italic' || str[2] === 'italic' ) ? true : false,
-      size: parseInt(str[3], 10),
-      family: ( str[4] && str[4] !== '' ) ? str[4].split(',') : [ 'sans-serif' ]
-    };
-  }
+    "use strict";
 
-  return false;
-};
+    if( /^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i.test(str) )
+    {
+      str = str.match(/^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i);
+      return {
+        bold: ( str[1] === 'bold' || str[2] === 'bold' ) ? true : false,
+        italic: ( str[1] === 'italic' || str[2] === 'italic' ) ? true : false,
+        size: parseInt(str[3], 10),
+        family: ( str[4] && str[4] !== '' ) ? str[4].split(',') : [ 'sans-serif' ]
+      };
+    }
 
+    return false;
+  },
+});

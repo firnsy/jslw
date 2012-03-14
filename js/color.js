@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-var Color = Base.extend({
+var Color = Base.extend({ // INSTANCE INTERFACE
 
   /*
    *     Constructor
@@ -265,36 +265,37 @@ var Color = Base.extend({
 
     return '{r:' + this.r + ', g:' + this.g + ', b:' + this.b+ '}';
   },
-});
+}, { // CLASS INTERFACE
 
-/*
- *     Screens color strings.
- *         @String str : hexadecimal, shorthand hex, or rgb()
- *             #returns : Object {r: XXX, g: XXX, b: XXX} or false
- *             */
-Color.get_filtered_object = function(str)
-{
-  "use strict";
-
-  if( /^#?([\da-f]{3}|[\da-f]{6})$/i.test(str) )
+  /*
+   *     Screens color strings.
+   *         @String str : hexadecimal, shorthand hex, or rgb()
+   *             #returns : Object {r: XXX, g: XXX, b: XXX} or false
+   *             */
+  get_filtered_object: function(str)
   {
-    var _c = function(s,i)
+    "use strict";
+
+    if( /^#?([\da-f]{3}|[\da-f]{6})$/i.test(str) )
     {
-      return parseInt(s.substr(i,2), 16);
-    };
+      var _c = function(s,i)
+      {
+        return parseInt(s.substr(i,2), 16);
+      };
 
-    str = str.replace(/^#/, '').replace(/^([\da-f])([\da-f])([\da-f])$/i, "$1$1$2$2$3$3");
+      str = str.replace(/^#/, '').replace(/^([\da-f])([\da-f])([\da-f])$/i, "$1$1$2$2$3$3");
 
-    return {r:_c(str,0), g:_c(str,2), b:_c(str,4)};
+      return {r:_c(str,0), g:_c(str,2), b:_c(str,4)};
+    }
+    else if( /^rgb *\( *\d{0,3} *, *\d{0,3} *, *\d{0,3} *\)$/i.test(str) ) {
+      str = str.match(/^rgb *\( *(\d{0,3}) *, *(\d{0,3}) *, *(\d{0,3}) *\)$/i);
+
+      return {r:parseInt(str[1], 10), g:parseInt(str[2], 10), b:parseInt(str[3], 10)};
+    }
+
+    return false;
   }
-  else if( /^rgb *\( *\d{0,3} *, *\d{0,3} *, *\d{0,3} *\)$/i.test(str) ) {
-    str = str.match(/^rgb *\( *(\d{0,3}) *, *(\d{0,3}) *, *(\d{0,3}) *\)$/i);
-
-    return {r:parseInt(str[1], 10), g:parseInt(str[2], 10), b:parseInt(str[3], 10)};
-  }
-
-  return false;
-};
+});
 
 /*
  *     Converts INT to HEX
