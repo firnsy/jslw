@@ -20,6 +20,16 @@
 */
 
 var Widget = Base.extend({
+
+  //
+  // MEMBERS
+  //
+
+  _parent:  null,
+  _root:    null,
+  root:     false,
+  children: [],
+
   /**
    * @constructor
    * Primary constructor for the Widget object
@@ -31,8 +41,6 @@ var Widget = Base.extend({
   {
     if( arguments.length === 0 )
       return;
-
-    this.set_parent(p);
 
     if( ! ( r instanceof Rect ) )
     {
@@ -50,13 +58,13 @@ var Widget = Base.extend({
     this.offset = new Vector2(0, 0);
     this.background_image = null;
 
-    //
-    // default member initialisation
-
     // track widget heirarchy
     this.root = false;
     this._parent = null;
     this.children = [];
+
+    this.set_parent(p);
+
 
     // base characteristics
     this.caption = '';
@@ -86,17 +94,15 @@ var Widget = Base.extend({
     this.is_dragged = false;
     this.is_touch = false;
 
-    this.register_callbacks(this);
-
     // process/render state
     this.visible = true;
-    this.dirty = false;
+    this.dirty = true;
     this.alpha = 1.0;
     this.clip = true;
     this.scale = 1.0;
 
     this.looping = false;
-    this.loop_timer = null;
+    this._loop_timer = null;
     this.canvas = null;
     this.context = null;
 
@@ -116,9 +122,6 @@ var Widget = Base.extend({
     this.text_height = this.get_text_height();
   },
 
-  _parent: null,
-  root:   null,
-
 
   //
   // PUBLIC METHODS
@@ -132,7 +135,7 @@ var Widget = Base.extend({
     if( this.root )
       return this;
     else if( ! ( this._parent instanceof Widget ) )
-      return null;
+      return this;
     else
       return this._parent.get_root();
   },
@@ -164,7 +167,7 @@ var Widget = Base.extend({
     if( p instanceof Widget )
     {
       this._parent = p;
-      this.root_widget = this.get_root();
+      this._root = this.get_root();
 
       p.add_child(this);
     }
@@ -688,7 +691,7 @@ var Widget = Base.extend({
       this.get_text_height();
     }
     else
-      console.error('set_font: Must supply a Font object. Got ' + f.toString());
+      console.error('Widget.set_font: Must supply a Font object. Got ' + f.toString());
 
     return this;
   },
@@ -698,13 +701,10 @@ var Widget = Base.extend({
    */
   set_font_color: function(c)
   {
-    if( ! c instanceof Color )
-    {
-      console.log('ERROR: Must supply a Color object.');
-      return;
-    }
-
-    this.font_color = c;
+    if( c instanceof Color )
+      this.font_color = c;
+    else
+      console.error('Widget.set_font_color: Must supply a Color object.');
 
     return this;
   },
@@ -721,7 +721,7 @@ var Widget = Base.extend({
       if( i.src != '' && i.complete )
         this.set_dirty(true);
     }
-    else
+    else if( typeof i === "string" )
     {
       this.background_image = new Image();
 
@@ -731,6 +731,8 @@ var Widget = Base.extend({
       var self = this;
       this.background_image.onload = function() { self.set_dirty(true); };
     }
+    else
+      console.error('Widget.set_background_image: Must supply an HTMLImageElement or valid path.');
 
     return this;
   },
@@ -741,13 +743,10 @@ var Widget = Base.extend({
    */
   set_background_color: function(c)
   {
-    if( ! c instanceof Color )
-    {
-      console.error('set_backgound_color: Must supply a Color object.');
-      return;
-    }
-
-    this.background_color = c;
+    if( c instanceof Color )
+      this.background_color = c;
+    else
+      console.error('Widget.set_backgound_color: Must supply a Color object.');
 
     return this;
   },
@@ -860,7 +859,7 @@ var Widget = Base.extend({
   {
     if( this.valid_events.indexOf(a) === -1 )
     {
-      console.log('WARN: Invalid event type supplied: ' + a);
+      console.warn('Widget.add_event_listener: Invalid event type supplied: ' + a);
       return;
     }
 
@@ -899,7 +898,7 @@ var Widget = Base.extend({
     var touches = e.changedTouches;
     this.is_touch = true;
     var first = touches[0];
-    var mouse_type = "";
+    var mouse_type = '';
 
     //console.log('touch type ' + e.type);
 
@@ -918,7 +917,7 @@ var Widget = Base.extend({
         mouse_type="mouse_out";
         break;
       default: {
-        console.log('unhandled touch type ' + e.type);
+        console.warn('Widget.touch_listener: Unhandled touch type ' + e.type);
         return;
       }
     }
@@ -1065,13 +1064,6 @@ var Widget = Base.extend({
     return handled;
   },
 
-  /**
-   * 
-   */
-  register_callbacks: function(o)
-  {
-  },
-
   mouse_up: function(x, y) {},
   mouse_down: function(x, y) {},
   mouse_move: function(x, y) {},
@@ -1092,7 +1084,7 @@ var Widget = Base.extend({
   {
     if( ! ( canvas instanceof HTMLCanvasElement ) )
     {
-      console.log('ERROR: You have not supplied a canvas element.');
+      console.error('Widget.set_canvase: You have not supplied a canvas element.');
       return;
     }
 
@@ -1119,15 +1111,27 @@ var Widget = Base.extend({
   },
 
   /**
-   * Sets the widget dirty, if it is visible try to 
+   * Sets the widget dirty, if it is visible try to
    * kick off a new update
    */
-  set_dirty: function(s)
+  set_dirty: function(s, u)
   {
+    if( this.dirty === s )
+      return this;
+
+    u = ( typeof u === 'boolean' ) ? u : true;
+
     this.dirty = s;
 
     if( this.dirty )
-      this.get_root().update();
+    {
+      // mark all children dirty
+      for( c in this.children )
+        this.children[c].dirty = s;
+
+      if( u )
+        this.get_root().update();
+    }
 
     return this;
   },
@@ -1184,7 +1188,13 @@ var Widget = Base.extend({
       // filter out all completed (ie deleted/undefined) animations
       this.animate = this.animate.filter( function(v){ return (v !== undefined); } );
 
+      // mark this control as dirty due to an animation occuring
       this.dirty = true;
+
+      // mark the parent of this widget dirty also, but don't force an update since
+      // we're in the middle of an update
+      if( this._parent )
+        this._parent.set_dirty(true, false);
     }
 
     // track dirty states of children
@@ -1223,8 +1233,9 @@ var Widget = Base.extend({
       context.closePath();
     }
 
-    // draw the widget
-    this.render_widget(context);
+    // draw the widget if we're actually dirty
+    if( this.dirty )
+      this.render_widget(context);
 
     // post process traversal
     for( c in this.children )
@@ -1398,18 +1409,12 @@ var Widget = Base.extend({
   {
     // call root parent if child (ie rendering always occurs from the root node)
     if( ! this.is_root() )
-    {
-      var r = this.get_root();
-      if( r )
-        r.update(f);
-      else
-        console.log('No root found for Widget: ' + this.toString());
-    }
+      return this._root.update(f);
 
     f = f || false;
 
     // skip this update if we have a pending/scheduled update
-    if( this.loop_timer != null )
+    if( this._loop_timer != null )
       return;
 
     if( this.process() || f )
@@ -1425,8 +1430,8 @@ var Widget = Base.extend({
       // reschedule if we're looping
       var self = this;
 
-      if( this.loop_timer == null )
-        this.loop_timer = setTimeout( function(){ self.loop_timer = null; self.update(); }, ANIMATE_FRAME_TIME_SPACING);
+      if( this._loop_timer == null )
+        this._loop_timer = setTimeout( function(){ self._loop_timer = null; self.update(); }, ANIMATE_FRAME_TIME_SPACING);
     }
   }
 });
