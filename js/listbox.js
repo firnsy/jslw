@@ -65,9 +65,6 @@ var ListBox = Widget.extend({
     this.drag_origin = new Vector2(0, 0);
 
     this.slider = null;
-
-    // register callbacks
-    this.register_callbacks(this);
   },
 
 
