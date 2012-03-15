@@ -1131,20 +1131,16 @@ var Widget = Base.extend({
    */
   set_dirty: function(s, u)
   {
-    if( this.dirty === s )
-      return this;
+//  if( this.dirty === s )
+//    return this;
 
-    u = ( typeof u === 'boolean' ) ? u : true;
+//  u = ( typeof u === 'boolean' ) ? u : true;
 
     this.dirty = s;
 
-    if( this.dirty )
+    if( ! this.root && this.dirty && this.visible )
     {
-      // mark all children dirty
-      for( c in this.children )
-        this.children[c].dirty = s;
-
-      if( u )
+        this.get_root().set_dirty();
         this.get_root().update();
     }
 
@@ -1166,6 +1162,8 @@ var Widget = Base.extend({
 
   process: function()
   {
+    console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Processing ...' + this.toString());
+
     if( ! this.visible )
       return;
 
@@ -1204,7 +1202,7 @@ var Widget = Base.extend({
       this.animate = this.animate.filter( function(v){ return (v !== undefined); } );
 
       // mark this control as dirty due to an animation occuring
-      console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Marking dirty ' + this.toString());
+//      console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Marking dirty ' + this.toString());
       this.dirty = true;
 
       // mark the parent of this widget dirty also, but don't force an update since
@@ -1427,7 +1425,10 @@ var Widget = Base.extend({
   {
     // call root parent if child (ie rendering always occurs from the root node)
     if( ! this.is_root() )
-      return this._root.update(f);
+    {
+      console.error('Widget.update: Called from a non-root widget.');
+      return;
+    }
 
     console.log('Updating...');
 
@@ -1458,5 +1459,16 @@ var Widget = Base.extend({
   toString: function()
   {
     return this._type + ' { visible: ' + this.visible +  ', bounds: ' + this.bounds.toString() + ' }';
-  }
+  },
+
+  _walkChildren: function()
+  {
+    if( ! this.visible )
+      return;
+
+    console.log( '                    '.substr(0, this.get_ancestor_length()*2) + '| ' + this.toString() );
+
+    for( c in this.children )
+      this.children[c]._walkChildren();
+  },
 });
