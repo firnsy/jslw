@@ -182,7 +182,10 @@ var Widget = Base.extend({
   {
     // add child to list of children
     if( c instanceof Widget )
+    {
       this.children.push(c);
+      console.log('add_child: added.');
+    }
     else
       console.error("add_child: Non widget instance provided.");
 
@@ -232,6 +235,13 @@ var Widget = Base.extend({
   set_visibility: function(state)
   {
     this.visible = ( state ) ? true : false;
+
+    return this;
+  },
+
+  toggle_visibility: function()
+  {
+    this.visible = ! this.visible;
 
     return this;
   },

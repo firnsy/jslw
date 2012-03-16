@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-var Button = Base.extend({
+var Button = Widget.extend({
   constructor: function(p, r, c)
   {
     // call our super constructor
@@ -676,10 +676,6 @@ var Button = Base.extend({
         this.overlay_image.src != '' &&
         this.overlay_image.complete )
     {
-      // TODO: optimise this hack out (introduced due to late loading of images via the cache)
-      if( this.overlay == null )
-        this.overlay_calculate_offset();
-
       context.drawImage(this.overlay_image, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
     }
 

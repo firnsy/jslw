@@ -1,47 +1,99 @@
+ic = new ImageCache();
+
 function demo_init()
 {
+  ic.add_image('background', 'images/Bgoverlay.png');
+
+  ic.add_image('front', 'images/front.png');
+  ic.add_image('display', 'images/Display.png');
+
+  ic.add_image('eject', 'images/b_open.png');
+  ic.add_image('eject_down', 'images/b_opend.png');
+
+  ic.add_image('crossfade', 'images/b_crossfade.png');
+  ic.add_image('crossfade_down', 'images/b_crossfaded.png');
+  ic.add_image('crossfade_label', 'images/crossfade.png');
+
+  ic.add_image('shuffle', 'images/b_shuffle.png');
+  ic.add_image('shuffle_down', 'images/b_shuffled.png');
+  ic.add_image('shuffle_label', 'images/shuffle.png');
+
+  ic.add_image('repeat', 'images/b_repeat.png');
+  ic.add_image('repeat_down', 'images/b_repeatd.png');
+  ic.add_image('repeat_label', 'images/repeat.png');
+
+  ic.add_image('led', 'images/led_on.png');
+
+  ic.load_all( demo_run );
 }
 
 function demo()
 {
   demo_init();
-  demo_run();
 }
 
 function demo_run()
 {
-  w = new Widget(null, new Rect(0, 0, 800, 480));
+  w = new Widget(null, new Rect(0, 0, 381, 216));
   w.set_root();
   w.set_canvas( $("#gui")[0] );
-  w.set_background_color(new Color('rgb(128, 0, 0)'));
+  w.set_background_image( ic.get_image('background') );
 
-  b1 = new Widget(w, new Rect(10, 10, 40, 40));
-  b1.set_background_color(new Color('#00ff00'));
+  // front, display
+  f = new Widget(w, new Rect(34, 0, 308, 216));
+  f.set_background_image( ic.get_image('front') );
 
-  b11 = new Widget(w, new Rect(70, 10, 40, 40));
-  b11.set_background_color(new Color('#00ff00'));
+  d = new Widget(w, new Rect(53, 9, 271, 116));
+  d.set_background_image( ic.get_image('display') );
 
-  b2 = new ListBox(w, new Rect(150, 50, 500, 300));
-  b2.set_background_color(new Color('#007f7f'));
-  b2.set_item_height(40);
-  b2.set_font(new Font('24px sans-serif'));
-  b2.set_active_font('24px sans-serif');
-  b2.set_font_color(new Color('#fff'));
-  b2.add_item('item 0');
-  b2.add_item('item 1');
-  b2.add_item('item 2');
-  b2.add_item('item 3');
-  b2.add_item('item 4');
-  b2.add_item('item 5');
-  b2.add_item('item 6');
-  b2.add_item('item 7');
-  b2.add_item('item 8');
-  b2.add_item('item 9');
-  b2.add_item('item 10');
+  // eject
+  b_eject = new Button( w, new Rect(7, 181, 28, 28) );
+  b_eject.set_background_image( ic.get_image('eject') );
+  b_eject.set_overlay_image( ic.get_image('eject_down') );
+
+  // crossfade, shuffle and repeat
+  b_crossfade = new Button( w, new Rect(9, 30, 19, 19) );
+  b_crossfade.set_background_image( ic.get_image('crossfade') );
+  b_crossfade.set_overlay_image( ic.get_image('crossfade_down') );
+
+  w_crossfade = new Widget( w, new Rect(28, 35, 14, 14) );
+  w_crossfade.set_background_image( ic.get_image('led') );
+  l_crossfade = new Widget( w, new Rect(60, 38, 39, 9) );
+  l_crossfade.set_background_image( ic.get_image('crossfade_label') );
+
+  b_crossfade.add_event_listener('mouse_click', function() {
+    w_crossfade.toggle_visibility();
+    l_crossfade.toggle_visibility();
+  });
+
+  b_shuffle = new Button( w, new Rect(11, 55, 19, 19) );
+  b_shuffle.set_background_image( ic.get_image('shuffle') );
+  b_shuffle.set_overlay_image( ic.get_image('shuffle_down') );
+
+  w_shuffle = new Widget( w, new Rect(30, 58, 14, 14) );
+  w_shuffle.set_background_image( ic.get_image('led') );
+  l_shuffle = new Widget( w, new Rect(62, 60, 31, 9) );
+  l_shuffle.set_background_image( ic.get_image('shuffle_label') );
+
+  b_shuffle.add_event_listener('mouse_click', function() {
+    w_shuffle.toggle_visibility();
+    l_shuffle.toggle_visibility();
+  });
+
+  b_repeat = new Button( w, new Rect(15, 80, 19, 19) );
+  b_repeat.set_background_image( ic.get_image('repeat') );
+  b_repeat.set_overlay_image( ic.get_image('repeat_down') );
+
+  w_repeat = new Widget( w, new Rect(34, 80, 14, 14) );
+  w_repeat.set_background_image( ic.get_image('led') );
+  l_repeat = new Widget( w, new Rect(66, 82, 27, 9) );
+  l_repeat.set_background_image( ic.get_image('repeat_label') );
+
+  b_repeat.add_event_listener('mouse_click', function() {
+    w_repeat.toggle_visibility();
+    l_repeat.toggle_visibility();
+  });
 
   // force update of all widgets
   w.update(true);
-
- setTimeout(function() { b11.slideOut('right', 400) } , 2500);
- setTimeout(function() { b1.slideOut('down', 400); } , 2750);
 }
