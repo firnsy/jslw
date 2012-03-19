@@ -22,6 +22,21 @@ function demo_init()
   ic.add_image('repeat_down', 'images/b_repeatd.png');
   ic.add_image('repeat_label', 'images/repeat.png');
 
+  ic.add_image('previous', 'images/b_previous.png');
+  ic.add_image('previous_down', 'images/b_previousd.png');
+
+  ic.add_image('next', 'images/b_next.png');
+  ic.add_image('next_down', 'images/b_nextd.png');
+
+  ic.add_image('stop', 'images/b_stop.png');
+  ic.add_image('stop_down', 'images/b_stopd.png');
+
+  ic.add_image('play', 'images/b_play.png');
+  ic.add_image('play_down', 'images/b_playd.png');
+
+  ic.add_image('pause', 'images/b_pause.png');
+  ic.add_image('pause_down', 'images/b_paused.png');
+
   ic.add_image('led', 'images/led_on.png');
 
   ic.load_all( demo_run );
@@ -92,6 +107,33 @@ function demo_run()
   b_repeat.add_event_listener('mouse_click', function() {
     w_repeat.toggle_visibility();
     l_repeat.toggle_visibility();
+  });
+
+
+  // play, stop, pause, next, previous
+
+  b_play = new Button( w, new Rect(298, 110, 32, 33) );
+  b_play.set_background_image( ic.get_image('play') );
+  b_play.set_overlay_image( ic.get_image('play_down') );
+
+  b_stop = new Button( w, new Rect(266, 110, 31, 33) );
+  b_stop.set_background_image( ic.get_image('stop') );
+  b_stop.set_overlay_image( ic.get_image('stop_down') );
+
+  b_previous = new Button( w, new Rect(266, 144, 31, 30) );
+  b_previous.set_background_image( ic.get_image('previous') );
+  b_previous.set_overlay_image( ic.get_image('previous_down') );
+
+  b_next = new Button( w, new Rect(298, 144, 32, 30) );
+  b_next.set_background_image( ic.get_image('next') );
+  b_next.set_overlay_image( ic.get_image('next_down') );
+
+  b_pause = new Button( w, new Rect(288, 137, 20, 20) );
+  b_pause.set_background_image( ic.get_image('pause') );
+  b_pause.set_overlay_image( ic.get_image('pause_down') );
+
+  b_pause.add_event_listener('mouse_down', function() {
+    return true;
   });
 
   // force update of all widgets
