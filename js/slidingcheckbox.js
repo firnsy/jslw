@@ -48,71 +48,6 @@ var SlidingCheckBox = Widget.extend({
   // PUBLIC METHODS
   //
 
-  //
-  // EVENT HANDLERS
-
-  mouse_drag_start: function(x, y)
-  {
-    this.drag_origin.set(x, y);
-  },
-
-  mouse_drag_move: function(x, y)
-  {
-    var x_delta = x - this.drag_origin.x;
-
-    this.drag_origin.set(x, y);
-
-    if( this.slider instanceof Widget )
-    {
-      if( this.slider.bounds.x + this.slider.bounds.w + x_delta > this.bounds.w )
-        this.slider.bounds.x = this.bounds.w - this.slider.bounds.w;
-      else if( this.slider.bounds.x + x_delta < 0 )
-        this.slider.bounds.x = 0;
-      else
-        this.slider.bounds.x += x_delta;
-
-      this.set_dirty(true);
-    }
-  },
-
-  mouse_drag_end: function(x, y)
-  {
-    // fade out scrollbar
-    if( this.slider instanceof Widget )
-    {
-      checked = ( ( this.slider.bounds.x + (this.slider.bounds.w / 2) ) > (this.bounds.w / 2) );
-
-      if( checked )
-        this.slider.slideTo( new Vector2(this.bounds.w - this.slider.bounds.w, 0), 200);
-      else
-        this.slider.slideTo( new Vector2(0, 0), 200);
-
-      if( checked != this.checked )
-      {
-        this.checked = checked;
-
-        //trigger check change
-        if( typeof this.event_cb['state_changed'] === 'function' )
-          return this.event_cb['state_changed'](this.checked);
-      }
-    }
-  },
-
-  mouse_click: function(x, y)
-  {
-    // toggle the checked state
-    this.checked ^= true;
-
-    if( this.checked )
-      this.slider.slideTo( new Vector2(this.bounds.w - this.slider.bounds.w, 0), 200);
-    else
-      this.slider.slideTo( new Vector2(0, 0), 200);
-
-    // trigger check change
-    if( typeof this.event_cb['state_changed'] === 'function' )
-      return this.event_cb['state_changed'](this.checked);
-  },
-
   add_slider: function(slider)
   {
     this.slider = slider;
@@ -224,6 +159,71 @@ var SlidingCheckBox = Widget.extend({
   // PRIVATE FUNCTIONS
   //
 
+  //
+  // EVENT HANDLERS
+
+  _mouse_drag_start: function(x, y)
+  {
+    this.drag_origin.set(x, y);
+  },
+
+  _mouse_drag_move: function(x, y)
+  {
+    var x_delta = x - this.drag_origin.x;
+
+    this.drag_origin.set(x, y);
+
+    if( this.slider instanceof Widget )
+    {
+      if( this.slider.bounds.x + this.slider.bounds.w + x_delta > this.bounds.w )
+        this.slider.bounds.x = this.bounds.w - this.slider.bounds.w;
+      else if( this.slider.bounds.x + x_delta < 0 )
+        this.slider.bounds.x = 0;
+      else
+        this.slider.bounds.x += x_delta;
+
+      this.set_dirty(true);
+    }
+  },
+
+  _mouse_drag_end: function(x, y)
+  {
+    // fade out scrollbar
+    if( this.slider instanceof Widget )
+    {
+      checked = ( ( this.slider.bounds.x + (this.slider.bounds.w / 2) ) > (this.bounds.w / 2) );
+
+      if( checked )
+        this.slider.slideTo( new Vector2(this.bounds.w - this.slider.bounds.w, 0), 200);
+      else
+        this.slider.slideTo( new Vector2(0, 0), 200);
+
+      if( checked != this.checked )
+      {
+        this.checked = checked;
+
+        //trigger check change
+        if( typeof this.event_cb['state_changed'] === 'function' )
+          return this.event_cb['state_changed'](this.checked);
+      }
+    }
+  },
+
+  _mouse_click: function(x, y)
+  {
+    // toggle the checked state
+    this.checked ^= true;
+
+    if( this.checked )
+      this.slider.slideTo( new Vector2(this.bounds.w - this.slider.bounds.w, 0), 200);
+    else
+      this.slider.slideTo( new Vector2(0, 0), 200);
+
+    // trigger check change
+    if( typeof this.event_cb['state_changed'] === 'function' )
+      return this.event_cb['state_changed'](this.checked);
+  },
+
   _overlay_calculate_offset: function()
   {
     if( this.overlay == null )
@@ -268,7 +268,7 @@ var SlidingCheckBox = Widget.extend({
     }
   },
 
-  render_widget: function(context)
+  _render_widget: function(context)
   {
     if( this.background_color instanceof Color )
     {
@@ -296,6 +296,6 @@ var SlidingCheckBox = Widget.extend({
       context.drawImage(this.overlay_image, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
     }
 
-    this.render_caption(context);
+    this._render_caption(context);
   },
 });

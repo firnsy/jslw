@@ -26,7 +26,7 @@ var ListBox = Widget.extend({
    * @param r rectangle object
    * @param c color object
    */
-  constructor: function(p, r, c)
+  constructor: function(p, r, s)
   {
     // call our super constructor
     this.base.apply(this, arguments);
@@ -56,8 +56,8 @@ var ListBox = Widget.extend({
     this.item_bounds = new Rect(this.bounds);
     this.item_bounds.scale(-10);
 
-    this.set_active_font(this.font);
-    this.set_active_font_color('#000');
+    this.set_active_font( this._font );
+    this.set_active_font_color( this._font_color );
     this.set_active_color('#fff');
 
     // number of items visible in the list
@@ -217,65 +217,6 @@ var ListBox = Widget.extend({
     return this.clear_item(this.item_index_active);
   },
 
-  //
-  // EVENTS
-  //
-
-  mouse_drag_start: function(x, y)
-  {
-    this.drag_origin.set(x, y);
-
-    // fade in scrollbar
-    if( this.slider instanceof Widget )
-    {
-      this.slider.set_visibility(true);
-      this.slider.fadeIn(200);
-    }
-
-  },
-
-  mouse_drag_move: function(x, y)
-  {
-    var y_delta = this.drag_origin.y - y;
-
-    this.drag_origin.set(x, y);
-
-    if( this.list_offset + y_delta >= 0 &&
-        this.list_offset + y_delta < this.list_offset_max )
-    {
-      this.list_offset += y_delta;
-
-      if( this.slider instanceof Widget )
-        this.slider.bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider.bounds.h) / this.list_offset_max);
-
-      this.set_dirty(true);
-    }
-
-    return this;
-  },
-
-  mouse_drag_end: function(x, y)
-  {
-    // fade out scrollbar
-    if( this.slider instanceof Widget )
-    {
-      this.slider.fadeOut(200);
-    }
-
-    return this;
-  },
-
-  mouse_click: function(x, y)
-  {
-    var index = Math.floor((this.list_offset + (y - this.item_bounds.y)) / this.item_height);
-
-    if( index < this.list.length )
-    {
-      this.item_index_active = index;
-    }
-
-    return this;
-  },
 
   //
   // STYLING
@@ -346,10 +287,73 @@ var ListBox = Widget.extend({
   },
 
   //
+  // PRIVATE
+  //
+
+  //
+  // EVENTS
+  //
+
+  _mouse_drag_start: function(x, y)
+  {
+    this.drag_origin.set(x, y);
+
+    // fade in scrollbar
+    if( this.slider instanceof Widget )
+    {
+      this.slider.set_visibility(true);
+      this.slider.fadeIn(200);
+    }
+
+  },
+
+  _mouse_drag_move: function(x, y)
+  {
+    var y_delta = this.drag_origin.y - y;
+
+    this.drag_origin.set(x, y);
+
+    if( this.list_offset + y_delta >= 0 &&
+        this.list_offset + y_delta < this.list_offset_max )
+    {
+      this.list_offset += y_delta;
+
+      if( this.slider instanceof Widget )
+        this.slider.bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider.bounds.h) / this.list_offset_max);
+
+      this.set_dirty(true);
+    }
+
+    return this;
+  },
+
+  _mouse_drag_end: function(x, y)
+  {
+    // fade out scrollbar
+    if( this.slider instanceof Widget )
+    {
+      this.slider.fadeOut(200);
+    }
+
+    return this;
+  },
+
+  _mouse_click: function(x, y)
+  {
+    var index = Math.floor((this.list_offset + (y - this.item_bounds.y)) / this.item_height);
+
+    if( index < this.list.length )
+    {
+      this.item_index_active = index;
+    }
+
+    return this;
+  },
+  //
   // RENDERING
   //
 
-  render_widget: function(context)
+  _render_widget: function(context)
   {
     // draw the widget
     if( this.background_color instanceof Color )
@@ -365,7 +369,7 @@ var ListBox = Widget.extend({
     }
 
     context.textBaseline = 'middle';
-    context.font = this.font.get_font();
+    context.font = this._font.get_font();
 
     if( this.font_color instanceof Color )
       context.fillStyle = this.font_color.get_rgba(this.alpha);

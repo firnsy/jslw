@@ -89,7 +89,7 @@ var Slider = Widget.extend({
   {
     switch(a)
     {
-      case "mouse_down":
+      case 'mouse_down':
         this.event_cb[a] = function(slider, x, y) {
           slider.background_image = slider.background_image_down;
           slider.drag_start.set(x,y);
@@ -98,7 +98,7 @@ var Slider = Widget.extend({
           cb(slider, x, y);
         };
         break;
-      case "mouse_drag_end":
+      case 'mouse_drag_end':
         this.event_cb[a] = function(slider, x, y) {
           slider.background_image = slider.background_image_up;
           slider.set_dirty(true);
@@ -106,7 +106,7 @@ var Slider = Widget.extend({
           cb(slider, x, y);
         };
         break;
-      case "mouse_drag_move":
+      case 'mouse_drag_move':
         this.event_cb[a] = function(slider, x, y) {
           slider.drag_delta.set(x,y);
           slider.drag_delta.difference(slider.drag_start);
@@ -190,7 +190,26 @@ var Slider = Widget.extend({
   // PRIVATE
   //
 
-  render_widget: function(context)
+  /**
+   * Calculates the slider level change from the delta
+   */
+  _calculate_slider_level: function()
+  {
+    if (this.bounds.w > this.bounds.h) {
+      var dx = this.drag_delta.x;
+      dx = 100*dx / (this.bounds.w - this.margins);
+      //console.log("%w " + dx);
+      return dx;
+    }
+    else {
+      var dy = -this.drag_delta.y;
+      dy = 100*dy / (this.bounds.h - this.margins);
+      //console.log("%h " + dy);
+      return dy;
+    }
+  },
+
+  _render_widget: function(context)
   {
     // draw the fill color
     if( this.background_color instanceof Color )
@@ -231,22 +250,4 @@ var Slider = Widget.extend({
     }
   },
 
-  /**
-   * Calculates the slider level change from the delta
-   */
-  _calculate_slider_level: function()
-  {
-    if (this.bounds.w > this.bounds.h) {
-      var dx = this.drag_delta.x;
-      dx = 100*dx / (this.bounds.w - this.margins);
-      //console.log("%w " + dx);
-      return dx;
-    }
-    else {
-      var dy = -this.drag_delta.y;
-      dy = 100*dy / (this.bounds.h - this.margins);
-      //console.log("%h " + dy);
-      return dy;
-    }
-  },
 });

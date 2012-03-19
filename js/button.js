@@ -24,6 +24,7 @@ var Button = Widget.extend({
   {
     // call our super constructor
     this.base.apply(this, arguments);
+    this._type = 'Button';
 
     // stores type and states of button
     this.type_states = {
@@ -54,7 +55,7 @@ var Button = Widget.extend({
     // turn of clipping to handle the overlay
     this.clip = false;
 
-    this._type = 'Button';
+    return this;
   },
 
 
@@ -242,7 +243,7 @@ var Button = Widget.extend({
 
       if( i.complete && i.width > 0 )
       {
-        this.type_calculate_offset();
+        this._type_calculate_offset();
         this.set_dirty(true);
       }
     }
@@ -255,7 +256,7 @@ var Button = Widget.extend({
 
       var self = this;
       this.type_states['objects'][type]['_default']['image'].onload = function() {
-        self.type_calculate_offset(type);
+        self._type_calculate_offset(type);
         self.set_dirty(true);
       };
     }
@@ -291,7 +292,7 @@ var Button = Widget.extend({
         break;
     }
 
-    this.type_calculate_offset();
+    this._type_calculate_offset();
   },
 
 
@@ -317,69 +318,9 @@ var Button = Widget.extend({
         break;
     }
 
-    this.type_calculate_offset();
+    this._type_calculate_offset();
   },
 
-
-  // TODO: PRIVATE
-  type_calculate_offset: function(types)
-  {
-    // resize all types if no type defined
-    types = types || this.type_states['types'];
-
-    for( t in types )
-    {
-      var type = types[t];
-
-      // resize for all states include default
-      var states = this.type_states['states'];
-
-      for( s in states )
-      {
-        var state = states[s];
-
-        if( ! this.type_states['objects'][type] ||
-            ! this.type_states['objects'][type][state] )
-          continue;
-
-        this.type_states['objects'][type][state]['bounds'].x = this.bounds.x;
-        this.type_states['objects'][type][state]['bounds'].y = this.bounds.y;
-
-        if( this.type_states['objects'][type][state]['image'] instanceof Image )
-        {
-          this.type_states['objects'][type][state]['bounds'].w = this.type_states['objects'][type][state]['image'].width || this.bounds.w;
-          this.type_states['objects'][type][state]['bounds'].h = this.type_states['objects'][type][state]['image'].height || this.bounds.h;
-        }
-        else
-        {
-          this.type_states['objects'][type][state]['bounds'].w = this.bounds.w;
-          this.type_states['objects'][type][state]['bounds'].h = this.bounds.h;
-        }
-
-        // horizontal alignment
-        switch( this.type_alignment_horizontal )
-        {
-          case 'center':
-            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this.bounds.w) / 2;
-            break;
-          case 'bottom':
-            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this.bounds.w);
-            break;
-        }
-
-        // vertical alignment
-        switch( this.type_alignment_vertical )
-        {
-          case 'middle':
-            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this.bounds.h) / 2;
-            break;
-          case 'bottom':
-            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this.bounds.h);
-            break;
-        }
-      }
-    }
-  },
 
 
   add_states: function(state)
@@ -505,7 +446,7 @@ var Button = Widget.extend({
 
       if( i.complete && i.width > 0 )
       {
-        this.type_calculate_offset();
+        this._type_calculate_offset();
         this.set_dirty(true);
       }
     }
@@ -519,7 +460,7 @@ var Button = Widget.extend({
 
       var self = this;
       this.type_states['objects']['_default'][state]['image'].onload = function() {
-        self.type_calculate_offset();
+        self._type_calculate_offset();
         self.set_dirty(true);
       };
     }
@@ -570,7 +511,7 @@ var Button = Widget.extend({
 
       if( i.complete && i.width > 0 )
       {
-        this.type_calculate_offset();
+        this._type_calculate_offset();
         this.set_dirty(true);
       }
     }
@@ -584,7 +525,7 @@ var Button = Widget.extend({
 
       var self = this;
       this.type_states['objects'][type][state]['image'].onload = function() {
-        self.type_calculate_offset(type);
+        self._type_calculate_offset(type);
         self.set_dirty(true);
       };
     }
@@ -603,9 +544,9 @@ var Button = Widget.extend({
   },
 
   //
-  // RENDERING
+  // PRIVATE
 
-  render_widget: function(context)
+  _render_widget: function(context)
   {
 
     if( this.background_color instanceof Color )
@@ -647,7 +588,7 @@ var Button = Widget.extend({
       {
         // TODO: optimise this hack out (introduced due to late loading of images via the cache)
         if( ts['bounds'].w === 0 )
-          this.type_calculate_offset();
+          this._type_calculate_offset();
 
         if( 'animate_bounds' in ts )
         {
@@ -681,6 +622,65 @@ var Button = Widget.extend({
       context.drawImage(this.overlay_image, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
     }
 
-    this.render_caption(context);
+    this._render_caption(context);
+  },
+
+  _type_calculate_offset: function(types)
+  {
+    // resize all types if no type defined
+    types = types || this.type_states['types'];
+
+    for( t in types )
+    {
+      var type = types[t];
+
+      // resize for all states include default
+      var states = this.type_states['states'];
+
+      for( s in states )
+      {
+        var state = states[s];
+
+        if( ! this.type_states['objects'][type] ||
+            ! this.type_states['objects'][type][state] )
+          continue;
+
+        this.type_states['objects'][type][state]['bounds'].x = this.bounds.x;
+        this.type_states['objects'][type][state]['bounds'].y = this.bounds.y;
+
+        if( this.type_states['objects'][type][state]['image'] instanceof Image )
+        {
+          this.type_states['objects'][type][state]['bounds'].w = this.type_states['objects'][type][state]['image'].width || this.bounds.w;
+          this.type_states['objects'][type][state]['bounds'].h = this.type_states['objects'][type][state]['image'].height || this.bounds.h;
+        }
+        else
+        {
+          this.type_states['objects'][type][state]['bounds'].w = this.bounds.w;
+          this.type_states['objects'][type][state]['bounds'].h = this.bounds.h;
+        }
+
+        // horizontal alignment
+        switch( this.type_alignment_horizontal )
+        {
+          case 'center':
+            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this.bounds.w) / 2;
+            break;
+          case 'bottom':
+            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this.bounds.w);
+            break;
+        }
+
+        // vertical alignment
+        switch( this.type_alignment_vertical )
+        {
+          case 'middle':
+            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this.bounds.h) / 2;
+            break;
+          case 'bottom':
+            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this.bounds.h);
+            break;
+        }
+      }
+    }
   },
 });

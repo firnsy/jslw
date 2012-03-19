@@ -36,10 +36,12 @@ var TabMap = Widget.extend({
 
     // add tab specific events
     this.valid_events.push('tab_click');
+
+    return this;
   },
 
   set_show_labels: function(s) {
-    this.show_labels = s;
+    this.show_labels = ( typeof s === 'boolean' ) ? s : this.show_labels;
   },
 
   add_tab: function(t, r, i_active, i_overlay)
@@ -68,30 +70,34 @@ var TabMap = Widget.extend({
     // set the active tab to this if it's the first
     if( this.active_tab === '' )
       this.active_tab = t;
+
+    return this;
   },
 
   set_tab_bounds: function(t, r)
   {
     if( ! ( t in this.tabs ) )
     {
-      console.warn('Tab does not exist.');
+      console.warn('TabMap.set_tab_bounds: Tab does not exist.');
       return;
     }
 
     if( ! ( r instanceof Rect ) )
     {
-      console.error('Bounds need to be defined as a Rect.');
+      console.error('TabMap.set_tab_bounds: Bounds need to be defined as a Rect.');
       return;
     }
 
     this.tabs[t]['bounds'] = r;
+
+    return this;
   },
 
   set_tab_image_active: function(t, i)
   {
     if( ! ( t in this.tabs ) )
     {
-      console.warn('Tab does not exist.');
+      console.warn('TabMap.set_tab_image_active: Tab does not exist.');
       return;
     }
 
@@ -112,13 +118,15 @@ var TabMap = Widget.extend({
       var self = this;
       this.tabs[t]['image_active'].onload = function() { self.set_dirty(true); };
     }
+
+    return this;
   },
 
   set_tab_image_overlay: function(t, i)
   {
     if( ! ( t in this.tabs ) )
     {
-      console.warn('Tab does not exist.');
+      console.warn('TabMap.set_tab_image_overlay: Tab does not exist.');
       return;
     }
 
@@ -139,9 +147,14 @@ var TabMap = Widget.extend({
       var self = this;
       this.tabs[t]['image_overlay'].onload = function() { self.set_dirty(true); };
     }
+
+    return this;
   },
 
-  mouse_down: function(x, y)
+  //
+  // PRIVATE
+  //
+  _mouse_down: function(x, y)
   {
     x = x - this.bounds.x;
     y = y - this.bounds.y;
@@ -156,13 +169,15 @@ var TabMap = Widget.extend({
         {
           this.pressed_tab = t;
           this.set_dirty(true);
-          return;
+          return true;
         }
       }
     }
+
+    return true;
   },
 
-  mouse_up: function(x, y)
+  _mouse_up: function(x, y)
   {
     x = x - this.bounds.x;
     y = y - this.bounds.y;
@@ -184,17 +199,19 @@ var TabMap = Widget.extend({
           this.pressed_tab = '';
           this.set_dirty(true);
 
-          return;
+          return true;
         }
       }
     }
+
+    return true;
   },
 
-  tab_click: function(t) {},
+  _tab_click: function(t) {},
 
   //
   // RENDERING
-  render_labels: function(context)
+  _render_labels: function(context)
   {
     context.save();
     for (var tab in this.tabs)
@@ -204,35 +221,35 @@ var TabMap = Widget.extend({
 
       switch( this.text_alignment_horizontal )
       {
-        case "center":
+        case 'center':
           lx += this.tabs[tab].bounds.w / 2;
-          context.textAlign = "center";
+          context.textAlign = 'center';
           break;
-        case "right":
+        case 'right':
           lx += (this.tabs[tab].bounds.w);
-          context.textAlign = "right";
+          context.textAlign = 'right';
           break;
-        case "left":
-          context.textAlign = "left";
+        case 'left':
+          context.textAlign = 'left';
           break;
       }
 
       switch( this.text_alignment_vertical )
       {
-        case "top":
-          context.textBaseline = "top";
+        case 'top':
+          context.textBaseline = 'top';
           break;
-        case "middle":
-          context.textBaseline = "middle";
+        case 'middle':
+          context.textBaseline = 'middle';
           ly += (this.tabs[tab].bounds.h/2);
           break;
-        case "bottom":
-          context.textBaseline = "bottom";
+        case 'bottom':
+          context.textBaseline = 'bottom';
           ly += (this.tabs[tab].bounds.h);
           break;
       }
 
-      context.font = this.font.get_font();
+      context.font = this._font.get_font();
 
       if( this.font_color instanceof Color )
         context.fillStyle = this.font_color.get_rgba(this.alpha);
@@ -242,7 +259,7 @@ var TabMap = Widget.extend({
     context.restore();
   },
 
-  render_widget: function(context)
+  _render_widget: function(context)
   {
 
     if( this.background_color instanceof Color )
@@ -268,12 +285,10 @@ var TabMap = Widget.extend({
       context.drawImage(this.tabs[this.pressed_tab]['image_overlay'], this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
     }
 
-    if (this.show_labels) 
+    if( this.show_labels )
     {
       // we want to show the text for the tabs in the label locations
-      this.render_labels(context);
+      this._render_labels(context);
     }
-
-    this.render_caption(context);
   },
 });

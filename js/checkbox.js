@@ -172,7 +172,7 @@ var CheckBox = Widget.extend({
     }
   },
 
-  render_widget: function(context)
+  _render_widget: function(context)
   {
 
     if( this.background_color instanceof Color )
@@ -201,6 +201,6 @@ var CheckBox = Widget.extend({
       context.drawImage(this.overlay_image, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
     }
 
-    this.render_caption(context);
+    this._render_caption(context);
   }
 });

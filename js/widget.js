@@ -58,7 +58,9 @@ var Widget = Base.extend({
     // set default styles
     s = ( typeof s === 'object' ) ? s : {};
     s.font = s.font || new Font('12px sans-serif');
-    s.font_color = s.font_color
+    s.font_color = s.font_color || new Color('#000000');
+    s.text_alignment_horizontal = s.text_alignment_horizontal || 'center';
+    s.text_alignment_vertical = s.text_alignment_vertical || 'middle';
 
     this.offset = new Vector2(0, 0);
     this.background_image = null;
@@ -73,10 +75,10 @@ var Widget = Base.extend({
 
     // base characteristics
     this.caption = '';
-    this.font = new Font('12px sans-serif');
-    this.font_color = new Color('#000');
-    this.set_text_alignment_horizontal('left');
-    this.set_text_alignment_vertical('middle');
+    this._font = s.font;
+    this._font_color = s.font_color;
+    this.set_text_alignment_horizontal( s.text_alignment_horizontal );
+    this.set_text_alignment_vertical( s.text_alignment_vertical );
 
     // animate stack
     this.animate = [];
@@ -156,7 +158,7 @@ var Widget = Base.extend({
   set_root: function()
   {
     if( this._parent instanceof Widget )
-      console.warn('set_root: This widget has a parent.');
+      console.warn('Widget.set_root: This widget has a parent.');
 
     this.root = true;
 
@@ -189,12 +191,9 @@ var Widget = Base.extend({
   {
     // add child to list of children
     if( c instanceof Widget )
-    {
       this.children.push(c);
-      console.log('add_child: added.');
-    }
     else
-      console.error("add_child: Non widget instance provided.");
+      console.error('Widget.add_child: Non widget instance provided.');
 
     return this;
   },
@@ -357,10 +356,8 @@ var Widget = Base.extend({
    */
   slideIn: function(d, s, cb)
   {
-    var offset = this.offset;
-
     // check if the widget is already "in" and showing
-    if( offset.x === 0 && offset.y === 0 && this.visible)
+    if( this.offset.x === 0 && this.offset.y === 0 && this.visible)
       return;
 
     // set sane default direction
@@ -410,6 +407,10 @@ var Widget = Base.extend({
         return;
     }
 
+    this.offset.translate( -delta );
+
+    var offset = this.offset;
+
     offset.set(delta);
     offset.scale(-animate_frames);
 
@@ -439,10 +440,8 @@ var Widget = Base.extend({
    */
   slideOut: function(d, s, cb)
   {
-    var offset = this.offset;
-
     // check if we the widget is already "out"
-    if( offset.x !== 0 || offset.y !== 0 )
+    if( this.offset.x !== 0 || this.offset.y !== 0 )
       return;
 
     // set sane default direction
@@ -494,6 +493,8 @@ var Widget = Base.extend({
 
     var delta = new Vector2(offset_final);
     delta.scale(1 / animate_frames);
+
+    var offset = this.offset;
 
     // push this animation on the animate stack
     this.animate.push({
@@ -704,7 +705,7 @@ var Widget = Base.extend({
   {
     if( f instanceof Font )
     {
-      this.font = f;
+      this._font = f;
       this.get_text_height();
     }
     else
@@ -719,7 +720,7 @@ var Widget = Base.extend({
   set_font_color: function(c)
   {
     if( c instanceof Color )
-      this.font_color = c;
+      this._font_color = c;
     else
       console.error('Widget.set_font_color: Must supply a Color object.');
 
@@ -827,8 +828,10 @@ var Widget = Base.extend({
 
   fill_multi_line_text: function(context, text, x, y)
   {
-    var currentLine = 0; lineHeight = this.text_height;
-    text = text.replace(/(\r\n|\n\r|\r|\n)/g, "\n");
+    var currentLine = 0;
+    var lineHeight = this.text_height;
+
+    text = text.replace(/(\r\n|\n\r|\r|\n)/g, '\n');
     lines = text.split('\n');
 
     var printLine = function(str)
@@ -841,6 +844,7 @@ var Widget = Base.extend({
     {
       var line = lines[i];
       var lineWidth = context.measureText(line).width;
+
       if(lineWidth > this.bounds.w)
       {
         // TODO. Handle this case.
@@ -858,251 +862,12 @@ var Widget = Base.extend({
     var heightEl = document.createElement("div");
     var heightNode = document.createTextNode("M");
     heightEl.appendChild(heightNode);
-    heightEl.setAttribute("style", this.font);
+    heightEl.setAttribute("style", this._font);
     body.appendChild(heightEl);
     var result = heightEl.offsetHeight;
     body.removeChild(heightEl);
     return result;
   },
-
-  //
-  // EVENT HANDLING
-  //
-
-  /**
-   * 
-   */
-  add_event_listener: function(a, cb)
-  {
-    if( this.valid_events.indexOf(a) === -1 )
-    {
-      console.warn('Widget.add_event_listener: Invalid event type supplied: ' + a);
-      return;
-    }
-
-    // assume we're a touch interface if using touch events
-    if( a.startsWith('touch_') )
-      this.is_touch = true;
-
-    this.event_cb[a] = cb;
-
-    return this;
-  },
-
-  /**
-   * Handle a mouse move event
-   *
-   * @param e Mouse event object
-   * @param o Widget object handling mouse move
-   * @param a event type string [mousemove,mousedown,mouseup...]
-   */
-  mouse_listener: function(e, o, a)
-  {
-    if (this.is_touch) return;
-
-    var x = (e.pageX - o.canvas.offsetLeft) / this.scale;
-    var y = (e.pageY - o.canvas.offsetTop) / this.scale;
-
-    o.mouse_process(x, y, a);
-  },
-
-  /**
-   * Handle a touch event
-   *
-   * @param e Touch event object
-   * @param o Widget object handling mouse move
-   * @param a event type string [touch_start,touch_move,touch_end...]
-   */
-  touch_listener: function(e, o, a)
-  {
-    e.preventDefault();
-    var touches = e.changedTouches;
-    var first = touches[0];
-    var mouse_type = '';
-
-    switch( a )
-    {
-      case 'touch_start':
-        mouse_type = 'mouse_down';
-        break;
-      case 'touch_move':
-        mouse_type='mouse_move';
-        break;
-      case 'touch_end':
-        mouse_type='mouse_up';
-        break;
-      case 'touch_cancel':
-        mouse_type='mouse_out';
-        break;
-      default: {
-        console.warn('Widget.touch_listener: Unhandled touch type ' + e.type);
-        return;
-      }
-    }
-
-    var x = (first.pageX - o.canvas.offsetLeft) / this.scale;
-    var y = (first.pageY - o.canvas.offsetTop) / this.scale;
-
-    o.mouse_process(x, y, mouse_type);
-  },
-
-  /**
-   *
-   */
-  mouse_process: function(x, y, a)
-  {
-    var handled = false;
-
-    // ignore invisible widgets
-    if( ! this.visible || this.alpha === 0 )
-      return handled;
-
-    // shortcut mouse moves if the mouse is up
-    // we are a touch framework...
-//    if (!this.is_pressed && a == 'mouse_move')
- //     return handled;
-
-    // if we don't intersect not should our kids, just say no!
-    // we could check the clipping but I say no you can't play
-    // with the kids outside the parent area...
-    if (! this.bounds.intersects(x,y))
-    {
-      if( this.is_pressed && a === 'mouse_move' )
-      {
-        console.log('woot');
-        this.is_pressed = false;
-        this.set_dirty(true);
-      }
-
-      return handled;
-    }
-
-    // children need to operate on relative point to current
-    var cx = x - this.bounds.x;
-    var cy = y - this.bounds.y;
-
-    for( var c = this.children.length - 1; c >= 0; c-- )
-    {
-      handled |= this.children[ c ].mouse_process(cx, cy, a);
-
-      // stop processing children if already handled
-      if( handled )
-        break;
-    }
-
-    if( ! handled )
-    {
-      // execute the system call back
-      if( typeof this[a] === 'function' )
-        handled |= this[a](x, y);
-
-      // execute the user call back
-      if( typeof this.event_cb[a] === 'function' )
-        handled |= this.event_cb[a](this, x, y);
-
-      // perform correlated actions (eg click)
-      switch( a )
-      {
-        case 'mouse_up':
-          if( this.is_pressed )
-          {
-            if( this.is_dragged )
-            {
-              // execute the system callback
-              handled |= this.mouse_drag_end(x, y);
-
-              // execute the user callback
-              if( this.event_cb['mouse_drag_end'] )
-                handled |= this.event_cb['mouse_drag_end'](this, x, y);
-            }
-            else
-            {
-              // execute the system callback
-              handled |= this.mouse_click(x, y);
-
-              // execute the user callback
-              if( this.event_cb['mouse_click'] )
-                handled |= this.event_cb['mouse_click'](this, x, y);
-            }
-          }
-
-          this.is_pressed = false;
-          this.is_dragged = false
-          this.set_dirty(true);
-          break;
-
-        case 'mouse_down':
-          this.is_pressed = true;
-          this.pressed_x = x;
-          this.pressed_y = y;
-          this.set_dirty(true);
-          break;
-
-        case 'mouse_move':
-          if( this.is_pressed )
-          {
-            var x_delta = Math.abs(x - this.pressed_x);
-            var y_delta = Math.abs(y - this.pressed_y);
-            if( this.is_dragged )
-            {
-              // execute the system callback
-              handled |= this.mouse_drag_move(x, y);
-
-              // execute the user callback
-              if( this.event_cb['mouse_drag_move'] )
-                handled |= this.event_cb['mouse_drag_move'](this, x, y);
-
-            }
-            else if( x_delta > 20 || y_delta > 20 )
-            {
-              this.is_dragged = true;
-
-              // execute the system callback
-              handled |= this.mouse_drag_start(x, y);
-
-              // execute the user callback
-              if( this.event_cb['mouse_drag_start'] )
-                handled |= this.event_cb['mouse_drag_start'](this, x, y);
-            }
-          }
-          break;
-      }
-    }
-    // cancel a mouse down if mouse_up occured out of widget
-    else if( this.is_pressed &&
-             ( a === 'mouse_up' || a === 'mouse_out' ) )
-    {
-      // mouse_click event does NOT occur when event closes out of widget
-      this.is_pressed = false;
-
-      // mouse_drag_end event DOES occur when event closes out of widget
-      if( this.is_dragged )
-      {
-        this.mouse_drag_end(x, y);
-
-        if( this.event_cb['mouse_drag_end'] )
-          this.event_cb['mouse_drag_end'](this, x, y);
-      }
-
-      this.is_dragged = false;
-      this.set_dirty(true);
-    }
-
-    return handled;
-  },
-
-  mouse_up: function(x, y) {},
-  mouse_down: function(x, y) {},
-  mouse_move: function(x, y) {},
-  mouse_click: function(x, y) {},
-  mouse_drag_start: function(x, y) {},
-  mouse_drag_move: function(x, y) {},
-  mouse_drag_end: function(x, y) {},
-
-
-  //
-  // PROCESS AND RENDERING
-  //
 
   /**
    * Setup the canvas element and attach the event listeners
@@ -1111,7 +876,7 @@ var Widget = Base.extend({
   {
     if( ! ( canvas instanceof HTMLCanvasElement ) )
     {
-      console.error('Widget.set_canvase: You have not supplied a canvas element.');
+      console.error('Widget.set_canvas: You have not supplied a canvas element.');
       return;
     }
 
@@ -1124,15 +889,15 @@ var Widget = Base.extend({
     var self = this;
 
     // apply our generic listener's to the canvas DOM
-    canvas.addEventListener("touchstart", function(e){ self.touch_listener(e, self, 'touch_start') }, false);
-    canvas.addEventListener("touchmove", function(e){ self.touch_listener(e, self, 'touch_move') }, false);
-    canvas.addEventListener("touchend", function(e){ self.touch_listener(e, self, 'touch_end') }, false);
-    canvas.addEventListener("touch", function(e){ self.touch_listener(e, self, 'touch') }, false);
-    canvas.addEventListener("touchcancel", function(e){ self.touch_listener(e, self, 'touch_cancel') }, false);
-    canvas.addEventListener("mousedown", function(e){ self.mouse_listener(e, self, 'mouse_down') }, false);
-    canvas.addEventListener("mouseup", function(e){ self.mouse_listener(e, self, 'mouse_up') }, false);
-    canvas.addEventListener("mousemove", function(e){ self.mouse_listener(e, self, "mouse_move") }, false);
-    canvas.addEventListener("mouseout", function(e){ self.mouse_listener(e, self, "mouse_out") }, false);
+    canvas.addEventListener('touchstart', function(e){ self._touch_listener(e, self, 'touch_start') }, false);
+    canvas.addEventListener('touchmove', function(e){ self._touch_listener(e, self, 'touch_move') }, false);
+    canvas.addEventListener('touchend', function(e){ self._touch_listener(e, self, 'touch_end') }, false);
+    canvas.addEventListener('touch', function(e){ self._touch_listener(e, self, 'touch') }, false);
+    canvas.addEventListener('touchcancel', function(e){ self._touch_listener(e, self, 'touch_cancel') }, false);
+    canvas.addEventListener('mousedown', function(e){ self._mouse_listener(e, self, 'mouse_down') }, false);
+    canvas.addEventListener('mouseup', function(e){ self._mouse_listener(e, self, 'mouse_up') }, false);
+    canvas.addEventListener('mousemove', function(e){ self._mouse_listener(e, self, 'mouse_move') }, false);
+    canvas.addEventListener('mouseout', function(e){ self._mouse_listener(e, self, 'mouse_out') }, false);
 
     return this;
   },
@@ -1172,7 +937,294 @@ var Widget = Base.extend({
     return is_dirty;
   },
 
-  process: function()
+
+  //
+  update: function(f)
+  {
+    // call root parent if child (ie rendering always occurs from the root node)
+    if( ! this.is_root() )
+    {
+      console.error('Widget.update: Called from a non-root widget.');
+      return;
+    }
+
+    f = f || false;
+
+    // skip this update if we have a pending/scheduled update
+    if( this._loop_timer != null )
+      return;
+
+    if( this._process() || f )
+    {
+      this.context.save();
+
+      this.context.scale(this.scale, this.scale);
+
+      this._render(this.context, 0, 0);
+
+      this.context.restore();
+
+      // reschedule if we're looping
+      var self = this;
+
+      if( this._loop_timer == null )
+        this._loop_timer = setTimeout( function(){ self._loop_timer = null; self.update(); }, ANIMATE_FRAME_TIME_SPACING);
+    }
+  },
+
+  
+  toString: function()
+  {
+    return this._type + ' { root: ' + this.root + ', visible: ' + this.visible +  ', bounds: ' + this.bounds.toString() + ', children: ' + this.children.length + ' }';
+  },
+
+  //
+  // EVENT HANDLING
+  //
+
+  /**
+   * 
+   */
+  add_event_listener: function(a, cb)
+  {
+    if( this.valid_events.indexOf(a) === -1 )
+    {
+      console.warn('Widget.add_event_listener: Invalid event type supplied: ' + a);
+      return;
+    }
+
+    // assume we're a touch interface if using touch events
+    if( a.startsWith('touch_') )
+      this.is_touch = true;
+
+    this.event_cb[a] = cb;
+
+    return this;
+  },
+
+  /**
+   * Handle a mouse move event
+   *
+   * @param e Mouse event object
+   * @param o Widget object handling mouse move
+   * @param a event type string [mousemove,mousedown,mouseup...]
+   */
+  _mouse_listener: function(e, o, a)
+  {
+    if (this.is_touch) return;
+
+    var x = (e.pageX - o.canvas.offsetLeft) / this.scale;
+    var y = (e.pageY - o.canvas.offsetTop) / this.scale;
+
+    o._mouse_process(x, y, a);
+  },
+
+  /**
+   * Handle a touch event
+   *
+   * @param e Touch event object
+   * @param o Widget object handling mouse move
+   * @param a event type string [touch_start,touch_move,touch_end...]
+   */
+  _touch_listener: function(e, o, a)
+  {
+    e.preventDefault();
+    var touches = e.changedTouches;
+    var first = touches[0];
+    var mouse_type = '';
+
+    switch( a )
+    {
+      case 'touch_start':
+        mouse_type = 'mouse_down';
+        break;
+      case 'touch_move':
+        mouse_type = 'mouse_move';
+        break;
+      case 'touch_end':
+        mouse_type = 'mouse_up';
+        break;
+      case 'touch_cancel':
+        mouse_type = 'mouse_out';
+        break;
+      default: {
+        console.warn('Widget.touch_listener: Unhandled touch type ' + e.type);
+        return;
+      }
+    }
+
+    var x = (first.pageX - o.canvas.offsetLeft) / this.scale;
+    var y = (first.pageY - o.canvas.offsetTop) / this.scale;
+
+    o._mouse_process(x, y, mouse_type);
+  },
+
+  /**
+   *
+   */
+  _mouse_process: function(x, y, a)
+  {
+    var handled = false;
+
+    // ignore invisible widgets
+    if( ! this.visible || this.alpha === 0 )
+      return handled;
+
+    // shortcut mouse moves if the mouse is up
+    // we are a touch framework...
+//    if (!this.is_pressed && a == 'mouse_move')
+ //     return handled;
+
+    // if we don't intersect not should our kids, just say no!
+    // we could check the clipping but I say no you can't play
+    // with the kids outside the parent area...
+    if (! this.bounds.intersects(x,y))
+    {
+      // abort the potential of a button press if we've left the area
+      if( this.is_pressed && a === 'mouse_move' )
+      {
+        this.is_pressed = false;
+        this.set_dirty(true);
+      }
+
+      return handled;
+    }
+
+    // children need to operate on relative point to current
+    var cx = x - this.bounds.x;
+    var cy = y - this.bounds.y;
+
+    for( var c = this.children.length - 1; c >= 0; c-- )
+    {
+      handled |= this.children[ c ]._mouse_process(cx, cy, a);
+
+      // stop processing children if already handled
+      if( handled )
+        break;
+    }
+
+    if( ! handled )
+    {
+      // execute the system call back
+      if( typeof this[a] === 'function' )
+        handled |= this[a](x, y);
+
+      // execute the user call back
+      if( typeof this.event_cb[a] === 'function' )
+        handled |= this.event_cb[a](this, x, y);
+
+      // perform correlated actions (eg click)
+      switch( a )
+      {
+        case 'mouse_up':
+          handled |= this._mouse_up(x, y);
+
+          if( this.is_pressed )
+          {
+            if( this.is_dragged )
+            {
+              // execute the system callback
+              handled |= this._mouse_drag_end(x, y);
+
+              // execute the user callback
+              if( this.event_cb['mouse_drag_end'] )
+                handled |= this.event_cb['mouse_drag_end'](this, x, y);
+            }
+            else
+            {
+              // execute the system callback
+              handled |= this._mouse_click(x, y);
+
+              // execute the user callback
+              if( this.event_cb['mouse_click'] )
+                handled |= this.event_cb['mouse_click'](this, x, y);
+            }
+          }
+
+          this.is_pressed = false;
+          this.is_dragged = false
+          this.set_dirty(true);
+          break;
+
+        case 'mouse_down':
+          handled |= this._mouse_down(x, y);
+
+          this.is_pressed = true;
+          this.pressed_x = x;
+          this.pressed_y = y;
+          this.set_dirty(true);
+          break;
+
+        case 'mouse_move':
+          handled |= this._mouse_move(x, y);
+
+          if( this.is_pressed )
+          {
+            var x_delta = Math.abs(x - this.pressed_x);
+            var y_delta = Math.abs(y - this.pressed_y);
+            if( this.is_dragged )
+            {
+              // execute the system callback
+              handled |= this._mouse_drag_move(x, y);
+
+              // execute the user callback
+              if( this.event_cb['mouse_drag_move'] )
+                handled |= this.event_cb['mouse_drag_move'](this, x, y);
+
+            }
+            else if( x_delta > 20 || y_delta > 20 )
+            {
+              this.is_dragged = true;
+
+              // execute the system callback
+              handled |= this._mouse_drag_start(x, y);
+
+              // execute the user callback
+              if( this.event_cb['mouse_drag_start'] )
+                handled |= this.event_cb['mouse_drag_start'](this, x, y);
+            }
+          }
+
+          break;
+      }
+    }
+    // cancel a mouse down if mouse_up occured out of widget
+    else if( this.is_pressed &&
+             ( a === 'mouse_up' || a === 'mouse_out' ) )
+    {
+      // mouse_click event does NOT occur when event closes out of widget
+      this.is_pressed = false;
+
+      // mouse_drag_end event DOES occur when event closes out of widget
+      if( this.is_dragged )
+      {
+        this._mouse_drag_end(x, y);
+
+        if( this.event_cb['mouse_drag_end'] )
+          this.event_cb['mouse_drag_end'](this, x, y);
+      }
+
+      this.is_dragged = false;
+      this.set_dirty(true);
+    }
+
+    return handled;
+  },
+
+  _mouse_up: function(x, y) {},
+  _mouse_down: function(x, y) {},
+  _mouse_move: function(x, y) {},
+  _mouse_click: function(x, y) {},
+  _mouse_drag_start: function(x, y) {},
+  _mouse_drag_move: function(x, y) {},
+  _mouse_drag_end: function(x, y) {},
+
+
+  //
+  // PROCESS AND RENDERING
+  //
+
+  _process: function()
   {
     if( ! this.visible )
       return;
@@ -1224,13 +1276,13 @@ var Widget = Base.extend({
     var is_dirty = this.dirty
 
     for( c in this.children )
-      is_dirty |= this.children[c].process();
+      is_dirty |= this.children[c]._process();
 
     // return aggregate dirty state
     return is_dirty;
   },
 
-  render: function(context, x, y)
+  _render: function(context, x, y)
   {
     if( ! ( context instanceof CanvasRenderingContext2D ) ||
         ! this.visible )
@@ -1256,11 +1308,11 @@ var Widget = Base.extend({
 
     // draw the widget if we're actually dirty
     // if( this.dirty )
-      this.render_widget(context);
+      this._render_widget(context);
 
     // post process traversal
     for( c in this.children )
-      this.children[c].render(context, this.bounds.x, this.bounds.y);
+      this.children[c]._render(context, this.bounds.x, this.bounds.y);
 
     context.restore();
 
@@ -1276,7 +1328,7 @@ var Widget = Base.extend({
    * Once we are done we can set dirty to false because we've rendered the
    * current changes.
    */
-  render_widget: function(context)
+  _render_widget: function(context)
   {
     // draw the widget
     if( this.background_color instanceof Color )
@@ -1286,19 +1338,18 @@ var Widget = Base.extend({
     }
 
     if( this.background_image instanceof Image &&
-        this.background_image.src != '' &&
-        this.background_image.complete )
+        this.background_image.naturalWidth !== 0 )
     {
       context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
     }
 
-    this.render_caption(context);
+    this._render_caption(context);
   },
 
   /**
    * Render the widget's text caption
    */
-  render_caption: function(context)
+  _render_caption: function(context)
   {
     if( this.caption === '' )
       return;
@@ -1338,19 +1389,15 @@ var Widget = Base.extend({
         break;
     }
 
-    context.font = this.font.get_font();
+    context.font = this._font.get_font();
 
-    if( this.font_color instanceof Color )
-      context.fillStyle = this.font_color.get_rgba(this.alpha);
+    if( this._font_color instanceof Color )
+      context.fillStyle = this._font_color.get_rgba(this.alpha);
 
     if(this.multi_line_text_enabled)
-    {
       this.fill_multi_line_text(context, this.caption, x, y);
-    }
     else
-    {
       context.fillText(this.caption, x, y);
-    }
   },
 
   /**
@@ -1379,13 +1426,17 @@ var Widget = Base.extend({
     var height = this.bounds.h;
     var xPos = this.bounds.x;
     var yPos = this.bounds.y;
+
     // left side
     context.moveTo(xPos, yPos + this.radius);
     context.arcTo(xPos, yPos + height, xPos + this.radius, yPos + height, this.radius);
+
     // bottom
     context.arcTo(xPos + width, yPos + height, xPos + width, yPos + height - this.radius, this.radius);
+
     // right side
     context.arcTo(xPos + width, yPos, xPos + width - this.radius, yPos, this.radius);
+
     // top
     context.arcTo(xPos, yPos, xPos, yPos + this.radius, this.radius);
     context.stroke();
@@ -1411,13 +1462,17 @@ var Widget = Base.extend({
     var height = this.bounds.h;
     var xPos = this.bounds.x;
     var yPos = this.bounds.y;
+
     // left side
     context.moveTo(xPos, yPos);
     context.lineTo(xPos, yPos + height);
+
     // bottom
     context.lineTo(xPos + width, yPos + height);
+
     // right side
     context.lineTo(xPos + width, yPos);
+
     // top
     context.lineTo(xPos, yPos);
     context.stroke();
@@ -1425,50 +1480,4 @@ var Widget = Base.extend({
   },
 
 
-  //
-  update: function(f)
-  {
-    // call root parent if child (ie rendering always occurs from the root node)
-    if( ! this.is_root() )
-    {
-      console.error('Widget.update: Called from a non-root widget.');
-      return;
-    }
-
-    f = f || false;
-
-    // skip this update if we have a pending/scheduled update
-    if( this._loop_timer != null )
-      return;
-
-    if( this.process() || f )
-    {
-      this.context.save();
-
-      this.context.scale(this.scale, this.scale);
-
-      this.render(this.context, 0, 0);
-
-      this.context.restore();
-
-      // reschedule if we're looping
-      var self = this;
-
-      if( this._loop_timer == null )
-        this._loop_timer = setTimeout( function(){ self._loop_timer = null; self.update(); }, ANIMATE_FRAME_TIME_SPACING);
-    }
-  },
-
-  toString: function()
-  {
-    return this._type + ' { root: ' + this.root + ', visible: ' + this.visible +  ', bounds: ' + this.bounds.toString() + ', children: ' + this.children.length + ' }';
-  },
-
-  _walkChildren: function()
-  {
-    console.log( '                    '.substr(0, this.get_ancestor_length()*2) + '| ' + this.toString() );
-
-    for( c in this.children )
-      this.children[c]._walkChildren();
-  },
 });
