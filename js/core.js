@@ -24,3 +24,13 @@
 //
 
 var ANIMATE_FRAME_TIME_SPACING = 40;    // time between animation frames in milliseconds
+
+
+//
+// string utils
+if (typeof String.prototype.startsWith != 'function') {
+  String.prototype.startsWith = function (str)
+  {
+    return this.slice(0, str.length) == str;
+  };
+};

@@ -40,9 +40,9 @@ var Widget = Base.extend({
    * Primary constructor for the Widget object
    * @param {Widget} p Parent of this widget, only the root object has no parent
    * @param {Rect} r Rectangle bounding box of this widget
-   * @param {Color} c Color of this Widget
+   * @param {Object} s Object representing the style of this Widget
    */
-  constructor: function(p, r, c)
+  constructor: function(p, r, s)
   {
     if( arguments.length === 0 )
       return;
@@ -55,10 +55,10 @@ var Widget = Base.extend({
 
     this.bounds = r;
 
-    if( c instanceof Color )
-      this.background_color = c;
-    else
-      this.background_color = null;
+    // set default styles
+    s = ( typeof s === 'object' ) ? s : {};
+    s.font = s.font || new Font('12px sans-serif');
+    s.font_color = s.font_color
 
     this.offset = new Vector2(0, 0);
     this.background_image = null;
@@ -66,10 +66,10 @@ var Widget = Base.extend({
     // track widget heirarchy
     this.root = false;
     this._parent = null;
-    this.children = [];
 
     this.set_parent(p);
 
+    this.children = [];
 
     // base characteristics
     this.caption = '';
@@ -140,7 +140,7 @@ var Widget = Base.extend({
     if( this.root )
       return this;
     else if( ! ( this._parent instanceof Widget ) )
-      return this;
+      return null;
     else
       return this._parent.get_root();
   },
@@ -172,10 +172,12 @@ var Widget = Base.extend({
     if( p instanceof Widget )
     {
       this._parent = p;
-      this._root = this.get_root();
+      this._root = p.get_root();
 
       p.add_child(this);
     }
+    else
+      this._root = this;
 
     return this;
   },
@@ -380,25 +382,25 @@ var Widget = Base.extend({
 
     switch( d )
     {
-      case "left":
+      case 'left':
         delta = new Vector2(
           Math.ceil(this.bounds.x2 / animate_frames),
           0
         );
         break;
-      case "right":
+      case 'right':
         delta = new Vector2(
           -Math.ceil((this._parent.bounds.w - this.bounds.x) / animate_frames),
           0
         );
         break;
-      case "up":
+      case 'up':
         delta = new Vector2(
           0,
           Math.ceil(this.bounds.y2 / animate_frames)
         );
         break;
-      case "down":
+      case 'down':
         delta = new Vector2(
           0,
           -Math.ceil((this._parent.bounds.h - this.bounds.y) / animate_frames)
@@ -444,7 +446,7 @@ var Widget = Base.extend({
       return;
 
     // set sane default direction
-    d = d || "left";
+    d = d || 'left';
 
     // set sane default speed
     s = parseInt(s);
@@ -462,25 +464,25 @@ var Widget = Base.extend({
 
     switch( d )
     {
-      case "left":
+      case 'left':
         offset_final = new Vector2(
           -Math.ceil(this.bounds.x2),
           0
         );
         break;
-      case "right":
+      case 'right':
         offset_final = new Vector2(
           Math.ceil(this._parent.bounds.w - this.bounds.x),
           0
         );
         break;
-      case "up":
+      case 'up':
         offset_final = new Vector2(
           0,
           -Math.ceil(this.bounds.y2)
         );
         break;
-      case "down":
+      case 'down':
         offset_final = new Vector2(
           0,
           Math.ceil(this._parent.bounds.h - this.bounds.y)
@@ -514,7 +516,7 @@ var Widget = Base.extend({
   },
 
   /**
-   * Toggles the alpha state of the widget to 
+   * Toggles the alpha state of the widget to
    * fade in or out
    */
   fadeToggle: function(s, cb)
@@ -835,7 +837,7 @@ var Widget = Base.extend({
       currentLine++;
     };
 
-    for (var i = 0; i < lines.length; ++i) 
+    for (var i = 0; i < lines.length; ++i)
     {
       var line = lines[i];
       var lineWidth = context.measureText(line).width;
@@ -878,6 +880,10 @@ var Widget = Base.extend({
       return;
     }
 
+    // assume we're a touch interface if using touch events
+    if( a.startsWith('touch_') )
+      this.is_touch = true;
+
     this.event_cb[a] = cb;
 
     return this;
@@ -911,25 +917,22 @@ var Widget = Base.extend({
   {
     e.preventDefault();
     var touches = e.changedTouches;
-    this.is_touch = true;
     var first = touches[0];
     var mouse_type = '';
 
-    //console.log('touch type ' + e.type);
-
-    switch(a)
+    switch( a )
     {
-      case "touch_start":
-        mouse_type = "mouse_down";
+      case 'touch_start':
+        mouse_type = 'mouse_down';
         break;
-      case "touch_move":
-        mouse_type="mouse_move";
+      case 'touch_move':
+        mouse_type='mouse_move';
         break;
-      case "touch_end":
-        mouse_type="mouse_up";
+      case 'touch_end':
+        mouse_type='mouse_up';
         break;
-      case "touch_cancel":
-        mouse_type="mouse_out";
+      case 'touch_cancel':
+        mouse_type='mouse_out';
         break;
       default: {
         console.warn('Widget.touch_listener: Unhandled touch type ' + e.type);
@@ -944,7 +947,7 @@ var Widget = Base.extend({
   },
 
   /**
-   * 
+   *
    */
   mouse_process: function(x, y, a)
   {
@@ -956,14 +959,23 @@ var Widget = Base.extend({
 
     // shortcut mouse moves if the mouse is up
     // we are a touch framework...
-    if (!this.is_pressed && a == 'mouse_move')
-      return handled;
+//    if (!this.is_pressed && a == 'mouse_move')
+ //     return handled;
 
     // if we don't intersect not should our kids, just say no!
     // we could check the clipping but I say no you can't play
     // with the kids outside the parent area...
     if (! this.bounds.intersects(x,y))
+    {
+      if( this.is_pressed && a === 'mouse_move' )
+      {
+        console.log('woot');
+        this.is_pressed = false;
+        this.set_dirty(true);
+      }
+
       return handled;
+    }
 
     // children need to operate on relative point to current
     var cx = x - this.bounds.x;
@@ -1058,7 +1070,7 @@ var Widget = Base.extend({
     }
     // cancel a mouse down if mouse_up occured out of widget
     else if( this.is_pressed &&
-             ( a == 'mouse_up' || a == 'mouse_out' ) )
+             ( a === 'mouse_up' || a === 'mouse_out' ) )
     {
       // mouse_click event does NOT occur when event closes out of widget
       this.is_pressed = false;
@@ -1131,17 +1143,17 @@ var Widget = Base.extend({
    */
   set_dirty: function(s, u)
   {
-//  if( this.dirty === s )
-//    return this;
+    if( this.dirty === s )
+      return this;
 
-//  u = ( typeof u === 'boolean' ) ? u : true;
+    u = ( typeof u === 'boolean' ) ? u : true;
 
     this.dirty = s;
 
-    if( ! this.root && this.dirty && this.visible )
+    if( this.dirty && this.visible )
     {
-        this.get_root().set_dirty();
-        this.get_root().update();
+//        this._root.set_dirty();
+        this._root.update();
     }
 
     return this;
@@ -1162,8 +1174,6 @@ var Widget = Base.extend({
 
   process: function()
   {
-    console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Processing ...' + this.toString());
-
     if( ! this.visible )
       return;
 
@@ -1202,7 +1212,6 @@ var Widget = Base.extend({
       this.animate = this.animate.filter( function(v){ return (v !== undefined); } );
 
       // mark this control as dirty due to an animation occuring
-//      console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Marking dirty ' + this.toString());
       this.dirty = true;
 
       // mark the parent of this widget dirty also, but don't force an update since
@@ -1223,13 +1232,9 @@ var Widget = Base.extend({
 
   render: function(context, x, y)
   {
-    console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Preparing to rendering: ' + this.toString() );
-
     if( ! ( context instanceof CanvasRenderingContext2D ) ||
         ! this.visible )
       return;
-
-    console.log('                    '.substr(0, this.get_ancestor_length()*2) + '| Rendering...');
 
     // save our context
     context.save();
@@ -1268,7 +1273,7 @@ var Widget = Base.extend({
    * visible that is the alpha > 0 scale > 0 and visible is true.
    * Here we clip and then call the render_widget and then render
    * all of our children.
-   * Once we are done we can set dirty to false because we've rendered the 
+   * Once we are done we can set dirty to false because we've rendered the
    * current changes.
    */
   render_widget: function(context)
@@ -1303,32 +1308,32 @@ var Widget = Base.extend({
 
     switch( this.text_alignment_horizontal )
     {
-      case "center":
+      case 'center':
         x += this.bounds.w / 2;
-        context.textAlign = "center";
+        context.textAlign = 'center';
         break;
-      case "right":
+      case 'right':
         x += (this.bounds.w) - this.right_margin;
-        context.textAlign = "right";
+        context.textAlign = 'right';
         break;
-      case "left":
+      case 'left':
         x += this.left_margin;
-        context.textAlign = "left";
+        context.textAlign = 'left';
         break;
     }
 
     switch( this.text_alignment_vertical )
     {
-      case "top":
+      case 'top':
         y += this.top_margin;
-        context.textBaseline = "top";
+        context.textBaseline = 'top';
         break;
-      case "middle":
-        context.textBaseline = "middle";
+      case 'middle':
+        context.textBaseline = 'middle';
         y += (this.bounds.h/2);
         break;
-      case "bottom":
-        context.textBaseline = "bottom";
+      case 'bottom':
+        context.textBaseline = 'bottom';
         y += (this.bounds.h) - this.bottom_margin;
         break;
     }
@@ -1356,13 +1361,13 @@ var Widget = Base.extend({
     context.beginPath();
     // set pen
     context.lineWidth = this.border_width;
-    context.lineCap = "round";
-    context.lineJoin = "round";
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
     if (this.border_width == 0) {
-      context.strokeStyle = "transparent";
+      context.strokeStyle = 'transparent';
     }
     else {
-      context.strokeStyle = "black";
+      context.strokeStyle = 'black';
     }
     if( this.background_color instanceof Color ) {
       context.fillStyle = this.background_color.get_rgba(this.alpha);
@@ -1396,9 +1401,9 @@ var Widget = Base.extend({
     context.beginPath();
     // set pen
     context.lineWidth = this.border_width;
-    context.lineCap = "round";
-    context.lineJoin = "round";
-    context.strokeStyle = "black";
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.strokeStyle = 'black';
     if( this.background_color instanceof Color ) {
       context.fillStyle = this.background_color.get_rgba(this.alpha);
     }
@@ -1430,8 +1435,6 @@ var Widget = Base.extend({
       return;
     }
 
-    console.log('Updating...');
-
     f = f || false;
 
     // skip this update if we have a pending/scheduled update
@@ -1458,14 +1461,11 @@ var Widget = Base.extend({
 
   toString: function()
   {
-    return this._type + ' { visible: ' + this.visible +  ', bounds: ' + this.bounds.toString() + ' }';
+    return this._type + ' { root: ' + this.root + ', visible: ' + this.visible +  ', bounds: ' + this.bounds.toString() + ', children: ' + this.children.length + ' }';
   },
 
   _walkChildren: function()
   {
-    if( ! this.visible )
-      return;
-
     console.log( '                    '.substr(0, this.get_ancestor_length()*2) + '| ' + this.toString() );
 
     for( c in this.children )
