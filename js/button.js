@@ -20,7 +20,15 @@
 */
 
 var Button = Widget.extend({
-  constructor: function(p, r, c)
+  /**
+   * @constructor
+   * @extends Widget
+   * Primary constructor for the Button object
+   * @param {Widget} p Parent of this widget, only the root object has no parent
+   * @param {Rect} r Rectangle bounding box of this widget
+   * @param {Object s Object defining the style of the Button
+   */
+  constructor: function(p, r, s)
   {
     // call our super constructor
     this.base.apply(this, arguments);
@@ -36,7 +44,7 @@ var Button = Widget.extend({
         '_default': {
           '_default': {
               'image': new Image(),
-              'bounds': new Rect(this.bounds),
+              'bounds': new Rect(this._bounds),
               'animate': false
           }
         }
@@ -137,11 +145,11 @@ var Button = Widget.extend({
   overlay_calculate_offset: function()
   {
     if( this.overlay == null )
-      this.overlay = new Rect(this.bounds);
+      this.overlay = new Rect(this._bounds);
     else
     {
-      this.overlay.x = this.bounds.x;
-      this.overlay.y = this.bounds.y;
+      this.overlay.x = this._bounds.x;
+      this.overlay.y = this._bounds.y;
     }
 
     this.overlay.w = this.overlay_image.width || this.overlay.w;
@@ -151,10 +159,10 @@ var Button = Widget.extend({
     switch( this.overlay_alignment_horizontal )
     {
       case 'center':
-        this.overlay.x -= (this.overlay.w - this.bounds.w) / 2;
+        this.overlay.x -= (this.overlay.w - this._bounds.w) / 2;
         break;
       case 'bottom':
-        this.overlay.x -= (this.overlay.w - this.bounds.w);
+        this.overlay.x -= (this.overlay.w - this._bounds.w);
         break;
     }
 
@@ -162,10 +170,10 @@ var Button = Widget.extend({
     switch( this.overlay_alignment_vertical )
     {
       case 'middle':
-        this.overlay.y -= (this.overlay.h - this.bounds.h) / 2;
+        this.overlay.y -= (this.overlay.h - this._bounds.h) / 2;
         break;
       case 'bottom':
-        this.overlay.y -= (this.overlay.h - this.bounds.h);
+        this.overlay.y -= (this.overlay.h - this._bounds.h);
         break;
     }
   },
@@ -191,7 +199,7 @@ var Button = Widget.extend({
         this.type_states['objects'][new_type] = {
           '_default': {
             'image': null,
-            'bounds': new Rect(this.bounds),
+            'bounds': new Rect(this._bounds),
             'animate': false
           }
         };
@@ -436,7 +444,7 @@ var Button = Widget.extend({
 
     // add default image for types
     this.type_states['objects']['_default'][state] = {
-      'bounds': new Rect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h),
+      'bounds': new Rect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h),
       'animate': false
     };
 
@@ -477,7 +485,7 @@ var Button = Widget.extend({
 
     var ts = this.type_states['objects']['_default'][state];
     ts['animate'] = true;
-    ts['animate_bounds'] = new Rect(0, 0, this.bounds.w, this.bounds.h);
+    ts['animate_bounds'] = new Rect(0, 0, this._bounds.w, this._bounds.h);
     ts['animate_speed'] = s;
     ts['animate_loops'] = l;
   },
@@ -552,14 +560,14 @@ var Button = Widget.extend({
     if( this.background_color instanceof Color )
     {
       context.fillStyle = this.background_color.get_rgba(Math.round(this.alpha * 255));
-      context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.fillRect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     // draw the background image
     if( this.background_image instanceof Image &&
         this.background_image.width > 0 )
     {
-      context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.drawImage(this.background_image, this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     var type = this.type_states['active_type'];
@@ -597,18 +605,18 @@ var Button = Widget.extend({
                             ts['animate_bounds'].y,
                             ts['animate_bounds'].w,
                             ts['animate_bounds'].h,
-                            this.bounds.x,
-                            this.bounds.y,
-                            this.bounds.w,
-                            this.bounds.h);
+                            this._bounds.x,
+                            this._bounds.y,
+                            this._bounds.w,
+                            this._bounds.h);
         }
         else
         {
           context.drawImage(ts['image'],
-                            this.bounds.x,
-                            this.bounds.y,
-                            this.bounds.w,
-                            this.bounds.h);
+                            this._bounds.x,
+                            this._bounds.y,
+                            this._bounds.w,
+                            this._bounds.h);
         }
       }
     }
@@ -616,8 +624,7 @@ var Button = Widget.extend({
     // draw the overlay if exists
     if( this.is_pressed &&
         this.overlay_image instanceof Image &&
-        this.overlay_image.src != '' &&
-        this.overlay_image.complete )
+        this.overlay_image.naturalWidth > 0 )
     {
       context.drawImage(this.overlay_image, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
     }
@@ -645,28 +652,28 @@ var Button = Widget.extend({
             ! this.type_states['objects'][type][state] )
           continue;
 
-        this.type_states['objects'][type][state]['bounds'].x = this.bounds.x;
-        this.type_states['objects'][type][state]['bounds'].y = this.bounds.y;
+        this.type_states['objects'][type][state]['bounds'].x = this._bounds.x;
+        this.type_states['objects'][type][state]['bounds'].y = this._bounds.y;
 
         if( this.type_states['objects'][type][state]['image'] instanceof Image )
         {
-          this.type_states['objects'][type][state]['bounds'].w = this.type_states['objects'][type][state]['image'].width || this.bounds.w;
-          this.type_states['objects'][type][state]['bounds'].h = this.type_states['objects'][type][state]['image'].height || this.bounds.h;
+          this.type_states['objects'][type][state]['bounds'].w = this.type_states['objects'][type][state]['image'].width || this._bounds.w;
+          this.type_states['objects'][type][state]['bounds'].h = this.type_states['objects'][type][state]['image'].height || this._bounds.h;
         }
         else
         {
-          this.type_states['objects'][type][state]['bounds'].w = this.bounds.w;
-          this.type_states['objects'][type][state]['bounds'].h = this.bounds.h;
+          this.type_states['objects'][type][state]['bounds'].w = this._bounds.w;
+          this.type_states['objects'][type][state]['bounds'].h = this._bounds.h;
         }
 
         // horizontal alignment
         switch( this.type_alignment_horizontal )
         {
           case 'center':
-            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this.bounds.w) / 2;
+            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this._bounds.w) / 2;
             break;
           case 'bottom':
-            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this.bounds.w);
+            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this._bounds.w);
             break;
         }
 
@@ -674,10 +681,10 @@ var Button = Widget.extend({
         switch( this.type_alignment_vertical )
         {
           case 'middle':
-            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this.bounds.h) / 2;
+            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this._bounds.h) / 2;
             break;
           case 'bottom':
-            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this.bounds.h);
+            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this._bounds.h);
             break;
         }
       }

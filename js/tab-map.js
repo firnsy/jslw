@@ -53,9 +53,9 @@ var TabMap = Widget.extend({
     }
 
     this.tabs[t] = {
-      'image_active': null,
-      'image_overlay': null,
-      'bounds': null
+      image_active:   null,
+      image_overlay:  null,
+      _bounds:        null
     }
 
     if( r )
@@ -88,7 +88,7 @@ var TabMap = Widget.extend({
       return;
     }
 
-    this.tabs[t]['bounds'] = r;
+    this.tabs[t]._bounds = r;
 
     return this;
   },
@@ -156,21 +156,19 @@ var TabMap = Widget.extend({
   //
   _mouse_down: function(x, y)
   {
-    x = x - this.bounds.x;
-    y = y - this.bounds.y;
+    x = x - this._bounds.x;
+    y = y - this._bounds.y;
 
     for( t in this.tabs )
     {
       var tab = this.tabs[t];
 
-      if( tab['bounds'] instanceof Rect )
+      if( tab._bounds instanceof Rect &&
+          tab._bounds.intersects(x, y) )
       {
-        if( tab['bounds'].intersects(x, y) )
-        {
-          this.pressed_tab = t;
-          this.set_dirty(true);
-          return true;
-        }
+        this.pressed_tab = t;
+        this.set_dirty(true);
+        return true;
       }
     }
 
@@ -179,28 +177,27 @@ var TabMap = Widget.extend({
 
   _mouse_up: function(x, y)
   {
-    x = x - this.bounds.x;
-    y = y - this.bounds.y;
+    x = x - this._bounds.x;
+    y = y - this._bounds.y;
 
     for( t in this.tabs )
     {
       var tab = this.tabs[t];
 
       // only need to check the tab which was initially pressed
-      if( t === this.pressed_tab )
+      if( t === this.pressed_tab &&
+          tab._bounds instanceof Rect &&
+          tab._bounds.intersects(x, y) )
       {
-        if( tab['bounds'].intersects(x, y) )
-        {
-          // invoke the tab_click callback with active tab as parameter
-          if( this.event_cb['tab_click'] )
-            this.event_cb['tab_click'](t)
+        // invoke the tab_click callback with active tab as parameter
+        if( this.event_cb['tab_click'] )
+          this.event_cb['tab_click'](t)
 
-          this.active_tab = t;
-          this.pressed_tab = '';
-          this.set_dirty(true);
+        this.active_tab = t;
+        this.pressed_tab = '';
+        this.set_dirty(true);
 
-          return true;
-        }
+        return true;
       }
     }
 
@@ -214,19 +211,20 @@ var TabMap = Widget.extend({
   _render_labels: function(context)
   {
     context.save();
+
     for (var tab in this.tabs)
     {
-      var lx = this.bounds.x + this.tabs[tab].bounds.x;
-      var ly = this.bounds.y + this.tabs[tab].bounds.y;
+      var lx = this._bounds.x + this.tabs[tab]._bounds.x;
+      var ly = this._bounds.y + this.tabs[tab]._bounds.y;
 
       switch( this.text_alignment_horizontal )
       {
         case 'center':
-          lx += this.tabs[tab].bounds.w / 2;
+          lx += this.tabs[tab]._bounds.w / 2;
           context.textAlign = 'center';
           break;
         case 'right':
-          lx += (this.tabs[tab].bounds.w);
+          lx += (this.tabs[tab]._bounds.w);
           context.textAlign = 'right';
           break;
         case 'left':
@@ -241,11 +239,11 @@ var TabMap = Widget.extend({
           break;
         case 'middle':
           context.textBaseline = 'middle';
-          ly += (this.tabs[tab].bounds.h/2);
+          ly += (this.tabs[tab]._bounds.h/2);
           break;
         case 'bottom':
           context.textBaseline = 'bottom';
-          ly += (this.tabs[tab].bounds.h);
+          ly += (this.tabs[tab]._bounds.h);
           break;
       }
 
@@ -265,7 +263,7 @@ var TabMap = Widget.extend({
     if( this.background_color instanceof Color )
     {
       context.fillStyle = this.background_color.get_rgba(this.alpha);
-      context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.fillRect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     // draw the background image
@@ -273,7 +271,7 @@ var TabMap = Widget.extend({
         this.tabs[this.active_tab]['image_active'] instanceof Image &&
         this.tabs[this.active_tab]['image_active'].width > 0 )
     {
-      context.drawImage(this.tabs[this.active_tab]['image_active'], this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.drawImage(this.tabs[this.active_tab]['image_active'], this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     // draw the overlay if exists
@@ -282,7 +280,7 @@ var TabMap = Widget.extend({
         this.tabs[this.pressed_tab]['image_overlay'] instanceof Image &&
         this.tabs[this.pressed_tab]['image_overlay'].width > 0 )
     {
-      context.drawImage(this.tabs[this.pressed_tab]['image_overlay'], this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.drawImage(this.tabs[this.pressed_tab]['image_overlay'], this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     if( this.show_labels )

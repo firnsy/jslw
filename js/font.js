@@ -20,6 +20,15 @@
 */
 
 var Font = Base.extend({ // INSTANCE INTERFACE
+
+  //
+  // MEMBERS
+  _size:     12,
+  _family:   'sans-serif',
+  _bold:     false,
+  _italic:   false,
+  _height:  0,
+
   //
   // CONSTRUCTOR
   constructor: function(font)
@@ -32,22 +41,15 @@ var Font = Base.extend({ // INSTANCE INTERFACE
       return false;
     }
 
-    this.family = font.family;
-    this.size   = font.size;
-    this.bold   = font.bold;
-    this.italic = font.italic;
+    this._family = font.family;
+    this._size   = font.size;
+    this._bold   = font.bold;
+    this._italic = font.italic;
 
     this._update();
 
     return this;
   },
-
-  //
-  // VARIABLES
-  size:   12,
-  family: 'sans-serif',
-  bold:   false,
-  italic: false,
 
   //
   // PUBLIC METHODS
@@ -58,7 +60,7 @@ var Font = Base.extend({ // INSTANCE INTERFACE
 
     if( family !== '' )
     {
-      this.family.push(family);
+      this._family.push(family);
       this._update();
     }
     else
@@ -67,14 +69,13 @@ var Font = Base.extend({ // INSTANCE INTERFACE
     return this;
   },
 
-
   remove_family: function(family)
   {
     "use strict";
 
-    if( family in this.family )
+    if( family in this._family )
     {
-      this.family.remove(family);
+      this._family.remove(family);
       this._update();
     }
     else
@@ -83,28 +84,25 @@ var Font = Base.extend({ // INSTANCE INTERFACE
     return this;
   },
 
-
   set_bold: function(state)
   {
     "use strict";
 
-    this.bold = state ? true : false;
+    this._bold = (typeof state === 'boolean' ) ? state : false;
     this._update();
 
     return this;
   },
-
 
   set_italic: function(state)
   {
     "use strict";
 
-    this.italic = state ? true : false;
+    this._italic = (typeof state === 'boolean' ) ? state : false;
     this._update();
 
     return this;
   },
-
 
   set_size: function(size)
   {
@@ -114,13 +112,20 @@ var Font = Base.extend({ // INSTANCE INTERFACE
 
     if( size > 0 )
     {
-      this.size = size;
+      this._size = size;
       this._update();
     }
     else
-      console.warn('Font.set_size: size must be a postive integer');
+      console.warn('Font.set_size: Size must be a postive integer');
 
     return this;
+  },
+
+  get_height: function()
+  {
+    "use strict";
+
+    return this._height;
   },
 
   get_font: function()
@@ -134,25 +139,38 @@ var Font = Base.extend({ // INSTANCE INTERFACE
   {
     "use strict";
 
-    return '{family:' + this.family.join(',') + ', size:' + this.size + ', bold:' + this.bold + ', italic:' + this.italic + '}';
+    return '{family:' + this._family.join(',') + ', size:' + this._size + ', bold:' + this._bold + ', italic:' + this._italic + '}';
   },
 
   //
   // PRIVATE METHODS
+
   _update: function()
   {
     "use strict";
 
     var style = '';
 
-    if( this.bold )
+    if( this._bold )
       style += 'bold ';
 
-    if( this.italic )
+    if( this._italic )
       style += 'italic ';
 
-    this._font = style + this.size + 'px ' + this.family.join(',');
+    this._font = style + this._size + 'px ' + this._family.join(',');
+
+    // calculate the height
+    var body = document.getElementsByTagName("body")[0];
+    var height_element = document.createElement("div");
+    var height_node = document.createTextNode("M");
+
+    height_element.appendChild(height_node);
+    height_element.setAttribute('style', this._font);
+    body.appendChild(height_element);
+    this._height = height_element.offsetHeight;
+    body.removeChild(height_element);
   },
+
 }, { // INSTANCE INTERFACE
   get_filtered_object: function(str)
   {
@@ -161,6 +179,7 @@ var Font = Base.extend({ // INSTANCE INTERFACE
     if( /^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i.test(str) )
     {
       str = str.match(/^(bold|italic)? *(bold|italic)? *(\d+)px *([\w, \-]+)$/i);
+
       return {
         bold: ( str[1] === 'bold' || str[2] === 'bold' ) ? true : false,
         italic: ( str[1] === 'italic' || str[2] === 'italic' ) ? true : false,

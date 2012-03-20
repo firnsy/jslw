@@ -131,11 +131,11 @@ var CheckBox = Widget.extend({
   _overlay_calculate_offset: function()
   {
     if( this.overlay == null )
-      this.overlay = new Rect(this.bounds);
+      this.overlay = new Rect(this._bounds);
     else
     {
-      this.overlay.x = this.bounds.x;
-      this.overlay.y = this.bounds.y;
+      this.overlay.x = this._bounds.x;
+      this.overlay.y = this._bounds.y;
     }
 
     if( this.overlay_image )
@@ -153,10 +153,10 @@ var CheckBox = Widget.extend({
     switch( this.overlay_alignment_horizontal )
     {
       case 'center':
-        this.overlay.x -= (this.overlay.w - this.bounds.w) / 2;
+        this.overlay.x -= (this.overlay.w - this._bounds.w) / 2;
         break;
       case 'bottom':
-        this.overlay.x -= (this.overlay.w - this.bounds.w);
+        this.overlay.x -= (this.overlay.w - this._bounds.w);
         break;
     }
 
@@ -164,10 +164,10 @@ var CheckBox = Widget.extend({
     switch( this.overlay_alignment_vertical )
     {
       case 'middle':
-        this.overlay.y -= (this.overlay.h - this.bounds.h) / 2;
+        this.overlay.y -= (this.overlay.h - this._bounds.h) / 2;
         break;
       case 'bottom':
-        this.overlay.y -= (this.overlay.h - this.bounds.h);
+        this.overlay.y -= (this.overlay.h - this._bounds.h);
         break;
     }
   },
@@ -178,14 +178,14 @@ var CheckBox = Widget.extend({
     if( this.background_color instanceof Color )
     {
       context.fillStyle = this.background_color.get_rgba(Math.round(this.alpha * 255));
-      context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.fillRect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     // draw the background image
     if( this.background_image instanceof Image &&
         this.background_image.width > 0 )
     {
-      context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.drawImage(this.background_image, this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     // draw the check if exists && checked

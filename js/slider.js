@@ -36,9 +36,13 @@ var Slider = Widget.extend({
     this.is_drag = false;
 
     var dirtify = function(slider) { slider.set_dirty(true); };
-    this.add_event_listener('mouse_down', dirtify);
-    this.add_event_listener('mouse_drag_end', dirtify);
-    this.add_event_listener('mouse_drag_move', dirtify);
+
+    this
+      .add_event_listener('mouse_down', dirtify)
+      .add_event_listener('mouse_drag_end', dirtify)
+      .add_event_listener('mouse_drag_move', dirtify);
+
+    return this;
   },
 
   //
@@ -195,15 +199,15 @@ var Slider = Widget.extend({
    */
   _calculate_slider_level: function()
   {
-    if (this.bounds.w > this.bounds.h) {
+    if (this._bounds.w > this._bounds.h) {
       var dx = this.drag_delta.x;
-      dx = 100*dx / (this.bounds.w - this.margins);
+      dx = 100*dx / (this._bounds.w - this.margins);
       //console.log("%w " + dx);
       return dx;
     }
     else {
       var dy = -this.drag_delta.y;
-      dy = 100*dy / (this.bounds.h - this.margins);
+      dy = 100*dy / (this._bounds.h - this.margins);
       //console.log("%h " + dy);
       return dy;
     }
@@ -215,19 +219,19 @@ var Slider = Widget.extend({
     if( this.background_color instanceof Color )
     {
       context.fillStyle = this.background_color.get_rgba(Math.round(this.alpha * 255));
-      context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.fillRect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     // draw the level bar
     if( this.level_image instanceof Image &&
         this.level > 0 ) 
     {
-      var width = this.bounds.w;
-      var height = this.bounds.h;
-      var xorig = this.bounds.x;
-      var yorig = this.bounds.y;
-      var internal_height = this.bounds.h - this.margins;
-      var internal_width = this.bounds.w - this.margins;
+      var width = this._bounds.w;
+      var height = this._bounds.h;
+      var xorig = this._bounds.x;
+      var yorig = this._bounds.y;
+      var internal_height = this._bounds.h - this.margins;
+      var internal_width = this._bounds.w - this.margins;
 
       // we are going to assume that the long axis is the drag axis.
       if (width > height) { 
@@ -244,9 +248,9 @@ var Slider = Widget.extend({
     }
     // draw the background image
     if( this.background_image instanceof Image &&
-        this.background_image.width > 0 )
+        this.background_image.naturalWidth > 0 )
     {
-      context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.drawImage(this.background_image, this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
   },
 

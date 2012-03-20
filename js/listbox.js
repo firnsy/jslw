@@ -53,7 +53,7 @@ var ListBox = Widget.extend({
 
     //
     this.item_height = 20;
-    this.item_bounds = new Rect(this.bounds);
+    this.item_bounds = new Rect(this._bounds);
     this.item_bounds.scale(-10);
 
     this.set_active_font( this._font );
@@ -66,9 +66,9 @@ var ListBox = Widget.extend({
     this.drag_origin = new Vector2(0, 0);
 
     this.slider = null;
+
+    return this;
   },
-
-
 
   //
   // ITEMS
@@ -132,6 +132,8 @@ var ListBox = Widget.extend({
     if (this.list.length == 0 || this.list[this.list.length - 1] != item) {
       this.add_item(item,data);
     }
+
+    return this;
   },
 
   clear_items: function()
@@ -224,12 +226,15 @@ var ListBox = Widget.extend({
 
   add_slider: function(slider)
   {
-    this.slider = slider;
-    this.slider.set_visibility(false);
+    if( slider instanceof 'Slider' )
+    {
+      this.slider = slider;
+      this.slider.set_visibility(false);
 
-    // TODO: use setter/getters
-    this.slider.bounds.x = this.bounds.w - this.slider.bounds.w;
-    this.slider.bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider.bounds.h) / this.list_offset_max);
+      // TODO: use setter/getters
+      this.slider._bounds.x = this._bounds.w - this.slider._bounds.w;
+      this.slider._bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider._bounds.h) / this.list_offset_max);
+    }
 
     return this;
   },
@@ -266,7 +271,7 @@ var ListBox = Widget.extend({
 
   set_active_font_color: function(color)
   {
-    // ensure a font object is built
+    // ensure a color object is built
     if( ! ( color instanceof Color ) )
       color = new Color(color);
 
@@ -277,7 +282,7 @@ var ListBox = Widget.extend({
 
   set_active_color: function(color)
   {
-    // ensure a font object is built
+    // ensure a color object is built
     if( ! ( color instanceof Color ) )
       color = new Color(color);
 
@@ -301,8 +306,9 @@ var ListBox = Widget.extend({
     // fade in scrollbar
     if( this.slider instanceof Widget )
     {
-      this.slider.set_visibility(true);
-      this.slider.fadeIn(200);
+      this.slider
+        .set_visibility(true)
+        .fadeIn(200);
     }
 
   },
@@ -319,7 +325,7 @@ var ListBox = Widget.extend({
       this.list_offset += y_delta;
 
       if( this.slider instanceof Widget )
-        this.slider.bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider.bounds.h) / this.list_offset_max);
+        this.slider._bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider._bounds.h) / this.list_offset_max);
 
       this.set_dirty(true);
     }
@@ -331,9 +337,7 @@ var ListBox = Widget.extend({
   {
     // fade out scrollbar
     if( this.slider instanceof Widget )
-    {
       this.slider.fadeOut(200);
-    }
 
     return this;
   },
@@ -359,13 +363,13 @@ var ListBox = Widget.extend({
     if( this.background_color instanceof Color )
     {
       context.fillStyle = this.background_color.get_rgba(this.alpha);
-      context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.fillRect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     if( this.background_image instanceof Image &&
-        this.background_image.width > 0 )
+        this.background_image.naturalWidth > 0 )
     {
-      context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.drawImage(this.background_image, this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     context.textBaseline = 'middle';

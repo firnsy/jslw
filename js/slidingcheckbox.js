@@ -42,6 +42,8 @@ var SlidingCheckBox = Widget.extend({
     this.clip = false;
 
     this.slider = null;
+
+    return this;
   },
 
   //
@@ -55,11 +57,11 @@ var SlidingCheckBox = Widget.extend({
 
     // TODO: use setter/getters
     if( this.checked )
-      this.slider.bounds.x = this.bounds.w - this.slider.bounds.w;
+      this.slider._bounds.x = this._bounds.w - this.slider._bounds.w;
     else
-      this.slider.bounds.x = 0;
+      this.slider._bounds.x = 0;
 
-    this.slider.bounds.y = 0;
+    this.slider._bounds.y = 0;
   },
 
   set_checked: function(checked)
@@ -74,7 +76,7 @@ var SlidingCheckBox = Widget.extend({
     this.checked = checked;
 
     if( this.checked )
-      this.slider.slideTo( new Vector2(this.bounds.w - this.slider.bounds.w, 0), 200 );
+      this.slider.slideTo( new Vector2(this._bounds.w - this.slider._bounds.w, 0), 200 );
     else
       this.slider.slideTo( new Vector2(0, 0), 200 );
   },
@@ -175,12 +177,12 @@ var SlidingCheckBox = Widget.extend({
 
     if( this.slider instanceof Widget )
     {
-      if( this.slider.bounds.x + this.slider.bounds.w + x_delta > this.bounds.w )
-        this.slider.bounds.x = this.bounds.w - this.slider.bounds.w;
-      else if( this.slider.bounds.x + x_delta < 0 )
-        this.slider.bounds.x = 0;
+      if( this.slider._bounds.x + this.slider._bounds.w + x_delta > this._bounds.w )
+        this.slider._bounds.x = this._bounds.w - this.slider._bounds.w;
+      else if( this.slider._bounds.x + x_delta < 0 )
+        this.slider._bounds.x = 0;
       else
-        this.slider.bounds.x += x_delta;
+        this.slider._bounds.x += x_delta;
 
       this.set_dirty(true);
     }
@@ -191,10 +193,10 @@ var SlidingCheckBox = Widget.extend({
     // fade out scrollbar
     if( this.slider instanceof Widget )
     {
-      checked = ( ( this.slider.bounds.x + (this.slider.bounds.w / 2) ) > (this.bounds.w / 2) );
+      checked = ( ( this.slider._bounds.x + (this.slider._bounds.w / 2) ) > (this._bounds.w / 2) );
 
       if( checked )
-        this.slider.slideTo( new Vector2(this.bounds.w - this.slider.bounds.w, 0), 200);
+        this.slider.slideTo( new Vector2(this._bounds.w - this.slider._bounds.w, 0), 200);
       else
         this.slider.slideTo( new Vector2(0, 0), 200);
 
@@ -215,7 +217,7 @@ var SlidingCheckBox = Widget.extend({
     this.checked ^= true;
 
     if( this.checked )
-      this.slider.slideTo( new Vector2(this.bounds.w - this.slider.bounds.w, 0), 200);
+      this.slider.slideTo( new Vector2(this._bounds.w - this.slider._bounds.w, 0), 200);
     else
       this.slider.slideTo( new Vector2(0, 0), 200);
 
@@ -227,11 +229,11 @@ var SlidingCheckBox = Widget.extend({
   _overlay_calculate_offset: function()
   {
     if( this.overlay == null )
-      this.overlay = new Rect(this.bounds);
+      this.overlay = new Rect(this._bounds);
     else
     {
-      this.overlay.x = this.bounds.x;
-      this.overlay.y = this.bounds.y;
+      this.overlay.x = this._bounds.x;
+      this.overlay.y = this._bounds.y;
     }
 
     if( this.overlay_image )
@@ -249,10 +251,10 @@ var SlidingCheckBox = Widget.extend({
     switch( this.overlay_alignment_horizontal )
     {
       case 'center':
-        this.overlay.x -= (this.overlay.w - this.bounds.w) / 2;
+        this.overlay.x -= (this.overlay.w - this._bounds.w) / 2;
         break;
       case 'bottom':
-        this.overlay.x -= (this.overlay.w - this.bounds.w);
+        this.overlay.x -= (this.overlay.w - this._bounds.w);
         break;
     }
 
@@ -260,10 +262,10 @@ var SlidingCheckBox = Widget.extend({
     switch( this.overlay_alignment_vertical )
     {
       case 'middle':
-        this.overlay.y -= (this.overlay.h - this.bounds.h) / 2;
+        this.overlay.y -= (this.overlay.h - this._bounds.h) / 2;
         break;
       case 'bottom':
-        this.overlay.y -= (this.overlay.h - this.bounds.h);
+        this.overlay.y -= (this.overlay.h - this._bounds.h);
         break;
     }
   },
@@ -273,14 +275,14 @@ var SlidingCheckBox = Widget.extend({
     if( this.background_color instanceof Color )
     {
       context.fillStyle = this.background_color.get_rgba(Math.round(this.alpha * 255));
-      context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.fillRect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     // draw the background image
     if( this.background_image instanceof Image &&
-        this.background_image.width > 0 )
+        this.background_image.naturalWidth > 0 )
     {
-      context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.drawImage(this.background_image, this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     // draw the check if exists && checked

@@ -25,22 +25,24 @@ var Widget = Base.extend({
   // MEMBERS
   //
 
-  _type:    'Widget',
+  _type:      'Widget',
 
-  _parent:  null,
-  _root:    null,
-  root:     false,
-  children: [],
+  _parent:    null,
+  _root:      null,
+  _is_root:   false,
+  _children:  [],
 
-  visible:  true,
-  _tag:     '',
+  _visible:   true,
+  _tag:       '',
+
+  _bounds:    null,
 
   /**
    * @constructor
    * Primary constructor for the Widget object
    * @param {Widget} p Parent of this widget, only the root object has no parent
    * @param {Rect} r Rectangle bounding box of this widget
-   * @param {Object} s Object representing the style of this Widget
+   * @param {Object} [s="{}"] Object representing the style of this Widget
    */
   constructor: function(p, r, s)
   {
@@ -53,32 +55,15 @@ var Widget = Base.extend({
       return;
     }
 
-    this.bounds = r;
-
-    // set default styles
-    s = ( typeof s === 'object' ) ? s : {};
-    s.font = s.font || new Font('12px sans-serif');
-    s.font_color = s.font_color || new Color('#000000');
-    s.text_alignment_horizontal = s.text_alignment_horizontal || 'center';
-    s.text_alignment_vertical = s.text_alignment_vertical || 'middle';
-
-    this.offset = new Vector2(0, 0);
-    this.background_image = null;
+    this._bounds = r;
+    this._offset = new Vector2(0, 0);
 
     // track widget heirarchy
-    this.root = false;
+    this._is_root = false;
     this._parent = null;
+    this._children = [];
 
     this.set_parent(p);
-
-    this.children = [];
-
-    // base characteristics
-    this.caption = '';
-    this._font = s.font;
-    this._font_color = s.font_color;
-    this.set_text_alignment_horizontal( s.text_alignment_horizontal );
-    this.set_text_alignment_vertical( s.text_alignment_vertical );
 
     // animate stack
     this.animate = [];
@@ -101,8 +86,26 @@ var Widget = Base.extend({
     this.is_dragged = false;
     this.is_touch = false;
 
+    // extend style defaults
+    s = ( typeof s === 'object' ) ? s : {};
+    s.font = s.font || new Font('12px sans-serif');
+    s.font_color = s.font_color || new Color('#000000');
+    s.text_alignment_horizontal = s.text_alignment_horizontal || 'center';
+    s.text_alignment_vertical = s.text_alignment_vertical || 'middle';
+    s.background_image = s.background_image || null;
+    s.caption = s.caption || '';
+
+    // apply styles
+    this.caption     = s.caption;
+    this._font       = s.font;
+    this._font_color = s.font_color;
+    this.set_text_alignment_horizontal( s.text_alignment_horizontal );
+    this.set_text_alignment_vertical( s.text_alignment_vertical );
+
+    this.background_image = s.background_image;
+
     // process/render state
-    this.visible = true;
+    this._visible = true;
     this.dirty = true;
     this.alpha = 1.0;
     this.clip = true;
@@ -114,9 +117,8 @@ var Widget = Base.extend({
     this.context = null;
 
     // border
-    this.has_border = false;
-    this.border_width = 1;
-    this.radius = 0;
+    this._border_width = 0;
+    this._border_radius = 0;
 
     // text margins
     this.right_margin = 0;
@@ -126,7 +128,7 @@ var Widget = Base.extend({
 
     // multi line support
     this.multi_line_text_enabled = false;
-    this.text_height = this.get_text_height();
+    this.text_height = this._font.get_height();
   },
 
 
@@ -139,7 +141,7 @@ var Widget = Base.extend({
    */
   get_root: function()
   {
-    if( this.root )
+    if( this._is_root )
       return this;
     else if( ! ( this._parent instanceof Widget ) )
       return null;
@@ -149,7 +151,7 @@ var Widget = Base.extend({
 
   is_root: function()
   {
-    return this.root;
+    return this._is_root;
   },
 
   /**
@@ -160,7 +162,7 @@ var Widget = Base.extend({
     if( this._parent instanceof Widget )
       console.warn('Widget.set_root: This widget has a parent.');
 
-    this.root = true;
+    this._is_root = true;
 
     return this;
   },
@@ -191,7 +193,7 @@ var Widget = Base.extend({
   {
     // add child to list of children
     if( c instanceof Widget )
-      this.children.push(c);
+      this._children.push(c);
     else
       console.error('Widget.add_child: Non widget instance provided.');
 
@@ -218,7 +220,7 @@ var Widget = Base.extend({
     if( s > 0 )
       this.scale = s;
     else
-      console.error('Scale must a positive real number.');
+      console.error('Widget.set_scale: Scale must a positive real number.');
 
     return this;
   },
@@ -230,7 +232,7 @@ var Widget = Base.extend({
    */
   get_visibility: function()
   {
-    return this.visible &&
+    return this._visible &&
            ( this.alpha > 0 ) &&
            ( this.scale > 0 );
   },
@@ -240,14 +242,14 @@ var Widget = Base.extend({
    */
   set_visibility: function(state)
   {
-    this.visible = ( state ) ? true : false;
+    this._visible = ( state ) ? true : false;
 
     return this;
   },
 
   toggle_visibility: function()
   {
-    this.visible = ! this.visible;
+    this._visible = ! this._visible;
 
     return this;
   },
@@ -258,7 +260,7 @@ var Widget = Base.extend({
    */
   hide: function()
   {
-    this.visible = false;
+    this._visible = false;
     this.set_dirty(true);
 
     return this;
@@ -271,8 +273,8 @@ var Widget = Base.extend({
    */
   show: function()
   {
-    this.offset.set(0, 0);
-    this.visible = true;
+    this._offset.set(0, 0);
+    this._visible = true;
 
     this.set_dirty(true);
 
@@ -295,7 +297,7 @@ var Widget = Base.extend({
 
   slideToggle: function(d, s, cb)
   {
-    var offset = this.offset;
+    var offset = this._offset;
 
     // check if the widget is "in"
     if( offset.x === 0 && offset.y === 0 )
@@ -324,8 +326,8 @@ var Widget = Base.extend({
     var animate_frames = Math.ceil(s / ANIMATE_FRAME_TIME_SPACING);
 
     var delta = new Vector2(
-      Math.ceil((o.x - this.bounds.x) / animate_frames),
-      Math.ceil((o.y - this.bounds.y) / animate_frames)
+      Math.ceil((o.x - this._bounds.x) / animate_frames),
+      Math.ceil((o.y - this._bounds.y) / animate_frames)
     );
 
     var self = this;
@@ -335,11 +337,11 @@ var Widget = Base.extend({
       index:    0,
       loop:     false,
       process:  function() {
-        self.bounds.translate(delta);
+        self._bounds.translate(delta);
       },
       complete: function() {
-        self.bounds.x = o.x;
-        self.bounds.y = o.y;
+        self._bounds.x = o.x;
+        self._bounds.y = o.y;
         cb();
       }
     });
@@ -357,7 +359,7 @@ var Widget = Base.extend({
   slideIn: function(d, s, cb)
   {
     // check if the widget is already "in" and showing
-    if( this.offset.x === 0 && this.offset.y === 0 && this.visible)
+    if( this._offset.x === 0 && this._offset.y === 0 && this._visible)
       return;
 
     // set sane default direction
@@ -381,35 +383,35 @@ var Widget = Base.extend({
     {
       case 'left':
         delta = new Vector2(
-          Math.ceil(this.bounds.x2 / animate_frames),
+          Math.ceil(this._bounds.x2 / animate_frames),
           0
         );
         break;
       case 'right':
         delta = new Vector2(
-          -Math.ceil((this._parent.bounds.w - this.bounds.x) / animate_frames),
+          -Math.ceil((this._parent._bounds.w - this._bounds.x) / animate_frames),
           0
         );
         break;
       case 'up':
         delta = new Vector2(
           0,
-          Math.ceil(this.bounds.y2 / animate_frames)
+          Math.ceil(this._bounds.y2 / animate_frames)
         );
         break;
       case 'down':
         delta = new Vector2(
           0,
-          -Math.ceil((this._parent.bounds.h - this.bounds.y) / animate_frames)
+          -Math.ceil((this._parent._bounds.h - this._bounds.y) / animate_frames)
         );
         break;
       default:
         return;
     }
 
-    this.offset.translate( -delta );
+    this._offset.translate( -delta );
 
-    var offset = this.offset;
+    var offset = this._offset;
 
     offset.set(delta);
     offset.scale(-animate_frames);
@@ -441,7 +443,7 @@ var Widget = Base.extend({
   slideOut: function(d, s, cb)
   {
     // check if we the widget is already "out"
-    if( this.offset.x !== 0 || this.offset.y !== 0 )
+    if( this._offset.x !== 0 || this._offset.y !== 0 )
       return;
 
     // set sane default direction
@@ -465,26 +467,26 @@ var Widget = Base.extend({
     {
       case 'left':
         offset_final = new Vector2(
-          -Math.ceil(this.bounds.x2),
+          -Math.ceil(this._bounds.x2),
           0
         );
         break;
       case 'right':
         offset_final = new Vector2(
-          Math.ceil(this._parent.bounds.w - this.bounds.x),
+          Math.ceil(this._parent._bounds.w - this._bounds.x),
           0
         );
         break;
       case 'up':
         offset_final = new Vector2(
           0,
-          -Math.ceil(this.bounds.y2)
+          -Math.ceil(this._bounds.y2)
         );
         break;
       case 'down':
         offset_final = new Vector2(
           0,
-          Math.ceil(this._parent.bounds.h - this.bounds.y)
+          Math.ceil(this._parent._bounds.h - this._bounds.y)
         );
         break;
       default:
@@ -494,7 +496,7 @@ var Widget = Base.extend({
     var delta = new Vector2(offset_final);
     delta.scale(1 / animate_frames);
 
-    var offset = this.offset;
+    var offset = this._offset;
 
     // push this animation on the animate stack
     this.animate.push({
@@ -583,7 +585,7 @@ var Widget = Base.extend({
   fadeOut: function(s, cb)
   {
     // check if we the widget is already "out"
-    if( ( this.alpha === 0 ) || ( ! this.visible ) )
+    if( ( this.alpha === 0 ) || ( ! this._visible ) )
       return;
 
     this.alpha = 1;
@@ -704,12 +706,9 @@ var Widget = Base.extend({
   set_font: function(f)
   {
     if( f instanceof Font )
-    {
       this._font = f;
-      this.get_text_height();
-    }
     else
-      console.error('Widget.set_font: Must supply a Font object. Got ' + f.toString());
+      console.error('Widget.set_font: Must supply a Font object.');
 
     return this;
   },
@@ -736,7 +735,7 @@ var Widget = Base.extend({
     {
       this.background_image = i;
 
-      if( i.src != '' && i.complete )
+      if( i.naturalWidth > 0 )
         this.set_dirty(true);
     }
     else if( typeof i === "string" )
@@ -770,27 +769,19 @@ var Widget = Base.extend({
   },
 
   /**
-   * Set the border flag, toggles rendering of the border
-   */
-  set_border: function(hasBorder)
-  {
-    this.has_border = hasBorder;
-  },
-
-  /**
-   * Set the border line width
+   * Set the border line width (0 == no border)
    */
   set_border_width: function(borderWidth)
   {
-    this.border_width = borderWidth;
+    this._border_width = ( parseInt(borderWidth) >= 0 ) ? parseInt(borderWidth) : 0;
   },
 
   /**
    * Set the border corner radius, also used to clip fill color
    */
-  set_radius: function(radius)
+  set_border_radius: function(borderRadius)
   {
-    this.radius = radius;
+    this._border_radius = ( parseInt(borderRadius) >= 0 ) ? parseInt(borderRadius): 0;
   },
 
   set_margins: function(leftMargin, rightMargin, topMargin, bottomMargin)
@@ -845,7 +836,7 @@ var Widget = Base.extend({
       var line = lines[i];
       var lineWidth = context.measureText(line).width;
 
-      if(lineWidth > this.bounds.w)
+      if(lineWidth > this._bounds.w)
       {
         // TODO. Handle this case.
       }
@@ -854,19 +845,6 @@ var Widget = Base.extend({
         printLine(line);
       }
     }
-  },
-
-  get_text_height: function()
-  {
-    var body = document.getElementsByTagName("body")[0];
-    var heightEl = document.createElement("div");
-    var heightNode = document.createTextNode("M");
-    heightEl.appendChild(heightNode);
-    heightEl.setAttribute("style", this._font);
-    body.appendChild(heightEl);
-    var result = heightEl.offsetHeight;
-    body.removeChild(heightEl);
-    return result;
   },
 
   /**
@@ -915,7 +893,7 @@ var Widget = Base.extend({
 
     this.dirty = s;
 
-    if( this.dirty && this.visible )
+    if( this.dirty && this._visible )
     {
 //        this._root.set_dirty();
         this._root.update();
@@ -926,13 +904,13 @@ var Widget = Base.extend({
 
   is_dirty: function()
   {
-    if( ! this.visible )
+    if( ! this._visible )
       return;
 
     var is_dirty = this.dirty;
 
-    for( c in this.children )
-      is_dirty |= this.children[c].is_dirty();
+    for( c in this._children )
+      is_dirty |= this._children[c].is_dirty();
 
     return is_dirty;
   },
@@ -975,7 +953,7 @@ var Widget = Base.extend({
   
   toString: function()
   {
-    return this._type + ' { root: ' + this.root + ', visible: ' + this.visible +  ', bounds: ' + this.bounds.toString() + ', children: ' + this.children.length + ' }';
+    return this._type + ' { root: ' + this._is_root + ', visible: ' + this._visible +  ', bounds: ' + this._bounds.toString() + ', children: ' + this._children.length + ' }';
   },
 
   //
@@ -1067,7 +1045,7 @@ var Widget = Base.extend({
     var handled = false;
 
     // ignore invisible widgets
-    if( ! this.visible || this.alpha === 0 )
+    if( ! this._visible || this.alpha === 0 )
       return handled;
 
     // shortcut mouse moves if the mouse is up
@@ -1078,7 +1056,7 @@ var Widget = Base.extend({
     // if we don't intersect not should our kids, just say no!
     // we could check the clipping but I say no you can't play
     // with the kids outside the parent area...
-    if (! this.bounds.intersects(x,y))
+    if (! this._bounds.intersects(x,y))
     {
       // abort the potential of a button press if we've left the area
       if( this.is_pressed && a === 'mouse_move' )
@@ -1091,12 +1069,12 @@ var Widget = Base.extend({
     }
 
     // children need to operate on relative point to current
-    var cx = x - this.bounds.x;
-    var cy = y - this.bounds.y;
+    var cx = x - this._bounds.x;
+    var cy = y - this._bounds.y;
 
-    for( var c = this.children.length - 1; c >= 0; c-- )
+    for( var c = this._children.length - 1; c >= 0; c-- )
     {
-      handled |= this.children[ c ]._mouse_process(cx, cy, a);
+      handled |= this._children[ c ]._mouse_process(cx, cy, a);
 
       // stop processing children if already handled
       if( handled )
@@ -1226,7 +1204,7 @@ var Widget = Base.extend({
 
   _process: function()
   {
-    if( ! this.visible )
+    if( ! this._visible )
       return;
 
     // TODO: animations stack should perhaps use an associative array
@@ -1275,8 +1253,8 @@ var Widget = Base.extend({
     // track dirty states of children
     var is_dirty = this.dirty
 
-    for( c in this.children )
-      is_dirty |= this.children[c]._process();
+    for( c in this._children )
+      is_dirty |= this._children[c]._process();
 
     // return aggregate dirty state
     return is_dirty;
@@ -1285,14 +1263,14 @@ var Widget = Base.extend({
   _render: function(context, x, y)
   {
     if( ! ( context instanceof CanvasRenderingContext2D ) ||
-        ! this.visible )
+        ! this._visible )
       return;
 
     // save our context
     context.save();
 
     // offset the view (accounts for animations)
-    context.translate(x + this.offset.x, y + this.offset.y);
+    context.translate(x + this._offset.x, y + this._offset.y);
 
     if( this.alpha > 0 && this.alpha < 1 )
       context.globalAlpha = this.alpha;
@@ -1301,7 +1279,7 @@ var Widget = Base.extend({
     if( this.clip )
     {
       context.beginPath();
-      context.rect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.rect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
       context.clip();
       context.closePath();
     }
@@ -1311,8 +1289,8 @@ var Widget = Base.extend({
       this._render_widget(context);
 
     // post process traversal
-    for( c in this.children )
-      this.children[c]._render(context, this.bounds.x, this.bounds.y);
+    for( c in this._children )
+      this._children[c]._render(context, this._bounds.x, this._bounds.y);
 
     context.restore();
 
@@ -1334,13 +1312,13 @@ var Widget = Base.extend({
     if( this.background_color instanceof Color )
     {
       context.fillStyle = this.background_color.get_rgba(this.alpha);
-      context.fillRect(this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.fillRect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     if( this.background_image instanceof Image &&
         this.background_image.naturalWidth !== 0 )
     {
-      context.drawImage(this.background_image, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h);
+      context.drawImage(this.background_image, this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     this._render_caption(context);
@@ -1354,17 +1332,17 @@ var Widget = Base.extend({
     if( this.caption === '' )
       return;
 
-    var x = this.bounds.x;
-    var y = this.bounds.y;
+    var x = this._bounds.x;
+    var y = this._bounds.y;
 
     switch( this.text_alignment_horizontal )
     {
       case 'center':
-        x += this.bounds.w / 2;
+        x += this._bounds.w / 2;
         context.textAlign = 'center';
         break;
       case 'right':
-        x += (this.bounds.w) - this.right_margin;
+        x += (this._bounds.w) - this.right_margin;
         context.textAlign = 'right';
         break;
       case 'left':
@@ -1381,11 +1359,11 @@ var Widget = Base.extend({
         break;
       case 'middle':
         context.textBaseline = 'middle';
-        y += (this.bounds.h/2);
+        y += (this._bounds.h/2);
         break;
       case 'bottom':
         context.textBaseline = 'bottom';
-        y += (this.bounds.h) - this.bottom_margin;
+        y += (this._bounds.h) - this.bottom_margin;
         break;
     }
 
@@ -1406,39 +1384,35 @@ var Widget = Base.extend({
   draw_round_rectangle: function(context)
   {
     context.beginPath();
+
     // set pen
-    context.lineWidth = this.border_width;
+    context.lineWidth = this._border_width;
     context.lineCap = 'round';
     context.lineJoin = 'round';
-    if (this.border_width == 0) {
-      context.strokeStyle = 'transparent';
-    }
-    else {
-      context.strokeStyle = 'black';
-    }
-    if( this.background_color instanceof Color ) {
+    context.strokeStyle = 'black';
+
+    if( this.background_color instanceof Color )
       context.fillStyle = this.background_color.get_rgba(this.alpha);
-    }
-    else {
+    else
       context.fillStyle = 'rgba(0,0,0,0)';
-    }
-    var width = this.bounds.w;
-    var height = this.bounds.h;
-    var xPos = this.bounds.x;
-    var yPos = this.bounds.y;
+
+    var w = this._bounds.w;
+    var h = this._bounds.h;
+    var x = this._bounds.x;
+    var y = this._bounds.y;
 
     // left side
-    context.moveTo(xPos, yPos + this.radius);
-    context.arcTo(xPos, yPos + height, xPos + this.radius, yPos + height, this.radius);
+    context.moveTo(x, y + this._border_radius);
+    context.arcTo(x, y + h, x + this._border_radius, y + h, this._border_radius);
 
     // bottom
-    context.arcTo(xPos + width, yPos + height, xPos + width, yPos + height - this.radius, this.radius);
+    context.arcTo(x + w, y + h, x + w, y + h - this._border_radius, this._border_radius);
 
     // right side
-    context.arcTo(xPos + width, yPos, xPos + width - this.radius, yPos, this.radius);
+    context.arcTo(x + w, y, x + w - this._border_radius, y, this._border_radius);
 
     // top
-    context.arcTo(xPos, yPos, xPos, yPos + this.radius, this.radius);
+    context.arcTo(x, y, x, y + this._border_radius, this._border_radius);
     context.stroke();
     context.fill();
     context.closePath();
@@ -1451,30 +1425,26 @@ var Widget = Base.extend({
   {
     context.beginPath();
     // set pen
-    context.lineWidth = this.border_width;
+    context.lineWidth = this._border_width;
     context.lineCap = 'round';
     context.lineJoin = 'round';
     context.strokeStyle = 'black';
-    if( this.background_color instanceof Color ) {
+
+    if( this.background_color instanceof Color )
       context.fillStyle = this.background_color.get_rgba(this.alpha);
-    }
-    var width = this.bounds.w;
-    var height = this.bounds.h;
-    var xPos = this.bounds.x;
-    var yPos = this.bounds.y;
 
-    // left side
-    context.moveTo(xPos, yPos);
-    context.lineTo(xPos, yPos + height);
+    var w = this._bounds.w;
+    var h = this._bounds.h;
+    var x = this._bounds.x;
+    var y = this._bounds.y;
 
-    // bottom
-    context.lineTo(xPos + width, yPos + height);
+    context.moveTo(x, y);
 
-    // right side
-    context.lineTo(xPos + width, yPos);
+    context.lineTo(x, y + h);       // left
+    context.lineTo(x + w, y + h);   // bottom
+    context.lineTo(x + w, y);       // right
+    context.lineTo(x, y);           // top
 
-    // top
-    context.lineTo(xPos, yPos);
     context.stroke();
     context.closePath();
   },
