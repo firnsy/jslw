@@ -226,7 +226,7 @@ var ListBox = Widget.extend({
 
   add_slider: function(slider)
   {
-    if( slider instanceof 'Slider' )
+    if( slider instanceof Slider )
     {
       this.slider = slider;
       this.slider.set_visibility(false);
