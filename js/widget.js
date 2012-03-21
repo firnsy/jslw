@@ -353,7 +353,7 @@ var Widget = Base.extend({
   },
 
   /**
-   * Another slide animation this is to return the widget to the 
+   * Another slide animation this is to return the widget to the
    * current view, we assume someone has slid it out earlier
    */
   slideIn: function(d, s, cb)
@@ -375,54 +375,55 @@ var Widget = Base.extend({
       cb = function() {};
 
     // calculate number of frames to animate for
-    var animate_frames = Math.ceil(s / ANIMATE_FRAME_TIME_SPACING);
-
-    var delta;
+    var tween;
+    var offset = this._offset;
 
     switch( d )
     {
       case 'left':
-        delta = new Vector2(
-          Math.ceil(this._bounds.x2 / animate_frames),
-          0
-        );
+        tween = new Tween({ x: -this._bounds.w })
+          .to({ x: 0}, s)
+          .on_update( function(o) {
+            offset.x = o.x;
+          })
+          .start(0);
         break;
       case 'right':
-        delta = new Vector2(
-          -Math.ceil((this._parent._bounds.w - this._bounds.x) / animate_frames),
-          0
-        );
+        tween = new Tween({ x: this._bounds.w })
+          .to({ x: 0 }, s)
+          .on_update( function(o) {
+            offset.x = o.x;
+          })
+          .start(0);
         break;
       case 'up':
-        delta = new Vector2(
-          0,
-          Math.ceil(this._bounds.y2 / animate_frames)
-        );
+        tween = new Tween({ y: -this._bounds.h })
+          .to({ y: 0 }, s)
+          .on_update( function(o) {
+            offset.y = o.y;
+          })
+          .start(0);
         break;
       case 'down':
-        delta = new Vector2(
-          0,
-          -Math.ceil((this._parent._bounds.h - this._bounds.y) / animate_frames)
-        );
+        tween = new Tween({ y: this._bounds.h })
+          .to({ y: 0 }, s)
+          .on_update( function(o) {
+            offset.y = o.y;
+          })
+          .start(0);
         break;
       default:
         return;
     }
 
-    this._offset.translate( -delta );
-
-    var offset = this._offset;
-
-    offset.set(delta);
-    offset.scale(-animate_frames);
 
     // push this animation on the animate stack
     this.animate.push({
-      frames:   animate_frames,
+      frames:   tween.length(),
       index:    0,
       loop:     false,
-      process:  function() {
-        offset.translate(delta);
+      process:  function(i) {
+        tween.update(i);
       },
       complete: function() {
         offset.set(0, 0);
@@ -461,53 +462,56 @@ var Widget = Base.extend({
     // calculate number of frames to animate for
     var animate_frames = Math.ceil(s / ANIMATE_FRAME_TIME_SPACING);
 
-    var offset_final;
+    var tween;
+    var offset = this._offset;
 
     switch( d )
     {
       case 'left':
-        offset_final = new Vector2(
-          -Math.ceil(this._bounds.x2),
-          0
-        );
+        tween = new Tween({ x: 0 })
+          .to({ x: -this._bounds.w }, s)
+          .on_update( function(o) {
+            offset.x = o.x;
+          })
+          .start(0);
         break;
       case 'right':
-        offset_final = new Vector2(
-          Math.ceil(this._parent._bounds.w - this._bounds.x),
-          0
-        );
+        tween = new Tween({ x: 0 })
+          .to({ x: this._bounds.w }, s)
+          .on_update( function(o) {
+            offset.x = o.x;
+          })
+          .start(0);
         break;
       case 'up':
-        offset_final = new Vector2(
-          0,
-          -Math.ceil(this._bounds.y2)
-        );
+        tween = new Tween({ y: 0 })
+          .to({ y: -this._bounds.h }, s)
+          .on_update( function(o) {
+            offset.y = o.y;
+          })
+          .start(0);
         break;
       case 'down':
-        offset_final = new Vector2(
-          0,
-          Math.ceil(this._parent._bounds.h - this._bounds.y)
-        );
+        tween = new Tween({ y: 0 })
+          .to({ y: -this._bounds.h }, s)
+          .on_update( function(o) {
+            offset.y = o.y;
+          })
+          .start(0);
         break;
       default:
         return;
     }
-
-    var delta = new Vector2(offset_final);
-    delta.scale(1 / animate_frames);
-
-    var offset = this._offset;
 
     // push this animation on the animate stack
     this.animate.push({
       frames:   animate_frames,
       index:    0,
       loop:     false,
-      process:  function() {
-        offset.translate(delta);
+      process:  function(i) {
+        tween.update(i);
       },
       complete: function() {
-        offset = offset_final;
         cb();
       }
     });
@@ -1050,16 +1054,16 @@ var Widget = Base.extend({
 
     // shortcut mouse moves if the mouse is up
     // we are a touch framework...
-//    if (!this.is_pressed && a == 'mouse_move')
- //     return handled;
+    if( this.is_touch && !this.is_pressed && a == 'mouse_move')
+      return handled;
 
     // if we don't intersect not should our kids, just say no!
     // we could check the clipping but I say no you can't play
     // with the kids outside the parent area...
-    if (! this._bounds.intersects(x,y))
+    if( ! this._bounds.intersects(x,y) )
     {
-      // abort the potential of a button press if we've left the area
-      if( this.is_pressed && a === 'mouse_move' )
+      // continue to track a button press appropriately
+      if( this.is_pressed && a === 'mouse_up' )
       {
         this.is_pressed = false;
         this.set_dirty(true);
