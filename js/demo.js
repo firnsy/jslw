@@ -39,6 +39,8 @@ function demo_init()
 
   ic.add_image('led', 'images/led_on.png');
 
+  ic.add_image('volume', 'images/volume.png');
+
   ic.load_all( demo_run );
 }
 
@@ -135,6 +137,12 @@ function demo_run()
   b_pause.add_event_listener('mouse_down', function() {
     return true;
   });
+
+  s_volume = new FramedSlider( w, new Rect(203, 157, 44, 44))
+    .set_framed_image( ic.get_image('volume') )
+    .add_event_listener('mouse_down', function() {
+      console.log('GOT IT');
+    });
 
   // force update of all widgets
   w.update(true);
