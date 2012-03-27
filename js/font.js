@@ -35,7 +35,7 @@ var Font = Base.extend({ // INSTANCE INTERFACE
   {
     "use strict";
 
-    if( !font || !(font = Font.get_filtered_object(font)) )
+    if( !font || !(font = Font._getFilteredObject(font)) )
     {
       console.error('Font: Invalid font object definition!');
       return false;
@@ -54,7 +54,7 @@ var Font = Base.extend({ // INSTANCE INTERFACE
   //
   // PUBLIC METHODS
 
-  add_family: function(family)
+  addFamily: function(family)
   {
     "use strict";
 
@@ -69,7 +69,7 @@ var Font = Base.extend({ // INSTANCE INTERFACE
     return this;
   },
 
-  remove_family: function(family)
+  removeFamily: function(family)
   {
     "use strict";
 
@@ -84,35 +84,35 @@ var Font = Base.extend({ // INSTANCE INTERFACE
     return this;
   },
 
-  set_bold: function(state)
+  setBold: function(_state)
   {
     "use strict";
 
-    this._bold = (typeof state === 'boolean' ) ? state : false;
+    this._bold = (typeof _state === 'boolean' ) ? _state : false;
     this._update();
 
     return this;
   },
 
-  set_italic: function(state)
+  setItalic: function(_state)
   {
     "use strict";
 
-    this._italic = (typeof state === 'boolean' ) ? state : false;
+    this._italic = (typeof state === 'boolean' ) ? _state : false;
     this._update();
 
     return this;
   },
 
-  set_size: function(size)
+  setSize: function(_size)
   {
     "use strict";
 
-    size = parseInt(size, 10);
+    _size = parseInt(_size, 10);
 
-    if( size > 0 )
+    if( _size > 0 )
     {
-      this._size = size;
+      this._size = _size;
       this._update();
     }
     else
@@ -121,14 +121,14 @@ var Font = Base.extend({ // INSTANCE INTERFACE
     return this;
   },
 
-  get_height: function()
+  getHeight: function()
   {
     "use strict";
 
     return this._height;
   },
 
-  get_font: function()
+  getFont: function()
   {
     "use strict";
 
@@ -149,15 +149,15 @@ var Font = Base.extend({ // INSTANCE INTERFACE
   {
     "use strict";
 
-    var style = '';
+    var _style = '';
 
     if( this._bold )
-      style += 'bold ';
+      _style += 'bold ';
 
     if( this._italic )
-      style += 'italic ';
+      _style += 'italic ';
 
-    this._font = style + this._size + 'px ' + this._family.join(',');
+    this._font = _style + this._size + 'px ' + this._family.join(',');
 
     // calculate the height
     var body = document.getElementsByTagName("body")[0];
@@ -172,7 +172,7 @@ var Font = Base.extend({ // INSTANCE INTERFACE
   },
 
 }, { // INSTANCE INTERFACE
-  get_filtered_object: function(str)
+  _getFilteredObject: function(str)
   {
     "use strict";
 

@@ -30,7 +30,7 @@ var Color = Base.extend({ // INSTANCE INTERFACE
   {
     "use strict";
 
-    if( !c || !(c = Color.get_filtered_object(c)) )
+    if( !c || !(c = Color._getFilteredObject(c)) )
       return false;
 
     this.original = c;
@@ -40,8 +40,8 @@ var Color = Base.extend({ // INSTANCE INTERFACE
     this.a = 1.0;
     this.check();
     this.gray = Math.round(0.3*this.r + 0.59*this.g + 0.11*this.b);
-    this.hex = this.get_hex();
-    this.rgb = this.get_rgb();
+    this.hex = this.getHEX();
+    this.rgb = this.getRGB();
     return this;
   },
 
@@ -55,20 +55,9 @@ var Color = Base.extend({ // INSTANCE INTERFACE
   {
     "use strict";
 
-    if( this.r > 255 )
-      this.r = 255;
-    else if( this.r < 0 )
-      this.r = 0;
-
-    if( this.g > 255 )
-      this.g = 255;
-    else if( this.g < 0 )
-      this.g = 0;
-
-    if( this.b > 255 )
-      this.b = 255;
-    else if( this.b < 0 )
-      this.b = 0;
+    this.r.clamp(0, 255);
+    this.g.clamp(0, 255);
+    this.b.clamp(0, 255);
 
     return this;
   },
@@ -164,7 +153,7 @@ var Color = Base.extend({ // INSTANCE INTERFACE
    *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
    *                 #returns : String color
    *                 */
-  get_lighter: function(amount, returnRGB)
+  getLighter: function(amount, returnRGB)
   {
     "use strict";
 
@@ -177,7 +166,7 @@ var Color = Base.extend({ // INSTANCE INTERFACE
    *             @Bool returnRGB : true uses RGB return string, false uses HEX return string.
    *                 #returns : String color
    *                 */
-  get_darker: function(amount, returnRGB)
+  getDarker: function(amount, returnRGB)
   {
     "use strict";
 
@@ -189,7 +178,7 @@ var Color = Base.extend({ // INSTANCE INTERFACE
    *         @Bool returnRGB : true uses RGB return string, false uses HEX return string.
    *             #returns : String color
    *             */
-  get_grayscale: function(returnRGB)
+  getGrayscale: function(returnRGB)
   {
     "use strict";
 
@@ -203,7 +192,7 @@ var Color = Base.extend({ // INSTANCE INTERFACE
    *         @Bool returnRGB : true uses RGB return string, false uses HEX return string.
    *             #returns : String color
    *             */
-  get_inverted: function(returnRGB)
+  getInverted: function(returnRGB)
   {
     "use strict";
 
@@ -214,7 +203,7 @@ var Color = Base.extend({ // INSTANCE INTERFACE
    *     Gets the rgb(x,x,x) value of the color
    *         #returns : String rgb color
    *         */
-  get_rgb: function()
+  getRGB: function()
   {
     "use strict";
 
@@ -228,7 +217,7 @@ var Color = Base.extend({ // INSTANCE INTERFACE
    *     Gets the rgb(x,x,x) value of the color
    *         #returns : String rgb color
    *         */
-  get_rgba: function(alpha)
+  getRGBA: function(alpha)
   {
     "use strict";
 
@@ -245,7 +234,7 @@ var Color = Base.extend({ // INSTANCE INTERFACE
    *         @Bool shorthandReturnAcceptable : true will return #333 instead of #333333
    *             #returns : String hex color
    *             */
-  get_hex: function(shorthandReturnAcceptable)
+  getHEX: function(shorthandReturnAcceptable)
   {
     "use strict";
 
@@ -272,7 +261,7 @@ var Color = Base.extend({ // INSTANCE INTERFACE
    *         @String str : hexadecimal, shorthand hex, or rgb()
    *             #returns : Object {r: XXX, g: XXX, b: XXX} or false
    *             */
-  get_filtered_object: function(str)
+  _getFilteredObject: function(str)
   {
     "use strict";
 
@@ -298,13 +287,27 @@ var Color = Base.extend({ // INSTANCE INTERFACE
 });
 
 /*
- *     Converts INT to HEX
- *         If Prototype library is loaded, use theirs, else use ours.
- *         */
+ * Converts INT to HEX
+*/
 Number.prototype.toColorPart = function()
 {
   "use strict";
 
   return ((this < 16 ? '0' : '') + this.toString(16));
+};
+
+/*
+ * Clamp a number to the specified range
+*/
+Number.prototype.clamp = function(_low, _high)
+{
+  "use strict";
+  
+  if ( (typeof _low === 'number') && this < _low ) {
+    return _low;
+  else if ( (typeof _high === 'number') && this > _high ) {
+    return _high;
+  else
+    return this;
 };
 
