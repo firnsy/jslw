@@ -35,6 +35,8 @@ var FramedSlider = Widget.extend({
     this.drag_delta = new Vector2(0,0);
     this.is_drag = false;
 
+    this.clip = false;
+
     this._current_frame = 0;
 
     var dirtify = function(slider) { slider.set_dirty(true); };
@@ -114,7 +116,7 @@ var FramedSlider = Widget.extend({
         break;
       case 'mouse_drag_move':
         this.event_cb[a] = function(slider, x, y) {
-          slider.drag_delta.set(x,y);
+          slider.drag_delta.set(x, y);
           slider.drag_delta.difference(slider.drag_start);
 
           // calc % change
@@ -126,12 +128,11 @@ var FramedSlider = Widget.extend({
             slider.level = 100;
 
           slider._current_frame = Math.round(slider._slider_frames * slider.level / 100);
-
           slider.set_dirty(true);
-          console.log('slider % ' + slider.level + ", frame: " + slider._current_frame);
 
           // new start point
           slider.drag_start.set(x,y);
+
           cb(slider, x, y);
         };
         break;
@@ -171,18 +172,27 @@ var FramedSlider = Widget.extend({
     return this;
   },
 
-  /**
-   * Sets the on pressed image
-   */
-  set_background_image_down: function(path)
+  set_framed_overlay_image: function(i)
   {
-    this.background_image_down = new Image();
+    if( i instanceof HTMLImageElement )
+    {
+      this._framed_overlay_image = i;
+      this._calculate_slider_overlay_frames();
+      this.set_dirty(true);
+    }
+    else
+    {
+      this._framed_overlay_image = new Image();
 
-    this.background_image_down.src = path;
-    this.background_image_down.onerror = function(){ alert("Unable to load image: " + this.src); };
+      this._framed_overlay_image.src = i;
+      this._framed_overlay_image.onerror = function(){ alert("Unable to load image: " + this.src); };
 
-    var self = this;
-    this.background_image_down.onload = function() { self.set_dirty(true); };
+      var self = this;
+      this._framed_overlay_image.onload = function() {
+        self._calculate_slider_overlay_frames();
+        self.set_dirty(true);
+      };
+    }
 
     return this;
   },
@@ -216,6 +226,26 @@ var FramedSlider = Widget.extend({
         Math.floor(this._framed_background_image.naturalHeight / this._bounds.h)
 
       console.log("Frames: " + this._slider_frames);
+    }
+  },
+
+  _calculate_slider_overlay_frames: function()
+  {
+    if( this._framed_overlay_image instanceof Image &&
+        this._framed_overlay_image.naturalWidth > 0 )
+    {
+      this._overlay_bounds = new Rect(
+        0, 0,
+        this._framed_overlay_image.naturalWidth,
+        this._framed_overlay_image.naturalHeight / this._slider_frames
+      );
+
+      console.log( this._bounds.toString() );
+
+      this._overlay_bounds.x = ( this._bounds.x + Math.round((this._bounds.w - this._overlay_bounds.w)/2));
+      this._overlay_bounds.y = ( this._bounds.y + Math.round((this._bounds.h - this._overlay_bounds.h)/2)) + 6;
+
+      console.log( this._overlay_bounds.toString() );
     }
   },
 
@@ -288,6 +318,20 @@ var FramedSlider = Widget.extend({
         this._bounds.y,
         this._bounds.w,
         this._bounds.h);
+    }
+
+    if( this._framed_overlay_image instanceof Image &&
+        this._framed_overlay_image.naturalWidth !== 0 )
+    {
+      context.drawImage(this._framed_overlay_image,
+        0,
+        this._overlay_bounds.h * this._current_frame,
+        this._overlay_bounds.w,
+        this._overlay_bounds.h,
+        this._overlay_bounds.x,
+        this._overlay_bounds.y,
+        this._overlay_bounds.w,
+        this._overlay_bounds.h);
     }
   },
 

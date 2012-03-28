@@ -40,6 +40,7 @@ function demo_init()
   ic.add_image('led', 'images/led_on.png');
 
   ic.add_image('volume', 'images/volume.png');
+  ic.add_image('volume_led', 'images/volumeled.png');
 
   ic.load_all( demo_run );
 }
@@ -140,9 +141,7 @@ function demo_run()
 
   s_volume = new FramedSlider( w, new Rect(203, 157, 44, 44))
     .set_framed_image( ic.get_image('volume') )
-    .add_event_listener('mouse_down', function() {
-      console.log('GOT IT');
-    });
+    .set_framed_overlay_image( ic.get_image('volume_led') );
 
   // force update of all widgets
   w.update(true);

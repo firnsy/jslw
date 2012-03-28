@@ -37,7 +37,7 @@ var Tween = Base.extend({
     this._frames         = 0;
     this._start_frame    = 0;
 
-    this._easing_func    = Tween.quarticEaseOut;
+    this._easing_func    = Tween.linearEaseNone;
     this._on_update_func = null;
   },
 

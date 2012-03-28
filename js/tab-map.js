@@ -52,6 +52,9 @@ var TabMap = Widget.extend({
       return;
     }
 
+    if( this._debug )
+      console.log('tab added...');
+
     this.tabs[t] = {
       image_active:   null,
       image_overlay:  null,
@@ -156,6 +159,9 @@ var TabMap = Widget.extend({
   //
   _mouse_down: function(x, y)
   {
+    if( this._debug )
+      console.log('mouse down ...');
+
     x = x - this._bounds.x;
     y = y - this._bounds.y;
 
@@ -177,6 +183,9 @@ var TabMap = Widget.extend({
 
   _mouse_up: function(x, y)
   {
+    if( this._debug )
+      console.log('mouse up ...');
+
     x = x - this._bounds.x;
     y = y - this._bounds.y;
 

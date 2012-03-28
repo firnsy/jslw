@@ -37,6 +37,9 @@ var Widget = Base.extend({
 
   _bounds:    null,
 
+  _id:        'unknown',
+  _debug:     false,
+
   /**
    * @constructor
    * Primary constructor for the Widget object
@@ -116,6 +119,8 @@ var Widget = Base.extend({
     this.canvas = null;
     this.context = null;
 
+    this._debug = false;
+
     // border
     this._border_width = 0;
     this._border_radius = 0;
@@ -135,6 +140,21 @@ var Widget = Base.extend({
   //
   // PUBLIC METHODS
   //
+
+  debug: function()
+  {
+    this._debug = true;
+    console.log('Debugging...');
+
+    return this;
+  },
+
+  id: function(_id)
+  {
+    this._id = ( typeof _id == 'string' ) ? _id : 'unknown';
+
+    return this;
+  },
 
   /**
    *
@@ -254,7 +274,6 @@ var Widget = Base.extend({
     return this;
   },
 
-
   /**
    * Hide the widget by setting its visible to false
    */
@@ -356,7 +375,7 @@ var Widget = Base.extend({
    * Another slide animation this is to return the widget to the
    * current view, we assume someone has slid it out earlier
    */
-  slideIn: function(d, s, cb)
+  slideIn: function(d, s, t, cb)
   {
     // check if the widget is already "in" and showing
     if( this._offset.x === 0 && this._offset.y === 0 && this._visible)
@@ -370,6 +389,9 @@ var Widget = Base.extend({
     if( s === 0 || s === 'NaN' )
       s = 1000;
 
+    // set sane tween
+    t = t || Tween.linearEaseNone;
+
     // set sane callback
     if( typeof cb !== 'function' )
       cb = function() {};
@@ -382,6 +404,7 @@ var Widget = Base.extend({
     {
       case 'left':
         tween = new Tween({ x: -this._bounds.w })
+          .easing(t)
           .to({ x: 0}, s)
           .on_update( function(o) {
             offset.x = o.x;
@@ -390,6 +413,7 @@ var Widget = Base.extend({
         break;
       case 'right':
         tween = new Tween({ x: this._bounds.w })
+          .easing(t)
           .to({ x: 0 }, s)
           .on_update( function(o) {
             offset.x = o.x;
@@ -398,6 +422,7 @@ var Widget = Base.extend({
         break;
       case 'up':
         tween = new Tween({ y: -this._bounds.h })
+          .easing(t)
           .to({ y: 0 }, s)
           .on_update( function(o) {
             offset.y = o.y;
@@ -406,6 +431,7 @@ var Widget = Base.extend({
         break;
       case 'down':
         tween = new Tween({ y: this._bounds.h })
+          .easing(t)
           .to({ y: 0 }, s)
           .on_update( function(o) {
             offset.y = o.y;
@@ -415,7 +441,6 @@ var Widget = Base.extend({
       default:
         return;
     }
-
 
     // push this animation on the animate stack
     this.animate.push({
@@ -441,7 +466,7 @@ var Widget = Base.extend({
    * Probably the last of the slidy animations this one slides the widget out
    * of site
    */
-  slideOut: function(d, s, cb)
+  slideOut: function(d, s, t, cb)
   {
     // check if we the widget is already "out"
     if( this._offset.x !== 0 || this._offset.y !== 0 )
@@ -454,6 +479,9 @@ var Widget = Base.extend({
     s = parseInt(s);
     if( s === 0 || s === 'NaN' )
       s = 1000;
+
+    // set sane tween
+    t = t || Tween.linearEaseNone;
 
     // set sane callback
     if( typeof cb !== 'function' )
@@ -469,6 +497,7 @@ var Widget = Base.extend({
     {
       case 'left':
         tween = new Tween({ x: 0 })
+          .easing(t)
           .to({ x: -this._bounds.w }, s)
           .on_update( function(o) {
             offset.x = o.x;
@@ -477,6 +506,7 @@ var Widget = Base.extend({
         break;
       case 'right':
         tween = new Tween({ x: 0 })
+          .easing(t)
           .to({ x: this._bounds.w }, s)
           .on_update( function(o) {
             offset.x = o.x;
@@ -485,6 +515,7 @@ var Widget = Base.extend({
         break;
       case 'up':
         tween = new Tween({ y: 0 })
+          .easing(t)
           .to({ y: -this._bounds.h }, s)
           .on_update( function(o) {
             offset.y = o.y;
@@ -493,6 +524,7 @@ var Widget = Base.extend({
         break;
       case 'down':
         tween = new Tween({ y: 0 })
+          .easing(t)
           .to({ y: -this._bounds.h }, s)
           .on_update( function(o) {
             offset.y = o.y;
@@ -503,6 +535,8 @@ var Widget = Base.extend({
         return;
     }
 
+    var self = this;
+
     // push this animation on the animate stack
     this.animate.push({
       frames:   animate_frames,
@@ -512,6 +546,7 @@ var Widget = Base.extend({
         tween.update(i);
       },
       complete: function() {
+        self.set_visibility(false);
         cb();
       }
     });
@@ -526,7 +561,7 @@ var Widget = Base.extend({
    * Toggles the alpha state of the widget to
    * fade in or out
    */
-  fadeToggle: function(s, cb)
+  fadeToggle: function(s, t, cb)
   {
     // check if the widget is "faded in"
     if( this.alpha === 0 )
@@ -540,7 +575,7 @@ var Widget = Base.extend({
   /**
    * Fade the widget into view
    */
-  fadeIn: function(s, cb)
+  fadeIn: function(s, t, cb)
   {
     // check if the widget has fully faded in
     if( this.alpha === 1 &&
@@ -586,7 +621,7 @@ var Widget = Base.extend({
   /**
    * Fade the widget out of view
    */
-  fadeOut: function(s, cb)
+  fadeOut: function(s, t, cb)
   {
     // check if we the widget is already "out"
     if( ( this.alpha === 0 ) || ( ! this._visible ) )
@@ -965,7 +1000,7 @@ var Widget = Base.extend({
   //
 
   /**
-   * 
+   *
    */
   add_event_listener: function(a, cb)
   {
@@ -993,6 +1028,9 @@ var Widget = Base.extend({
    */
   _mouse_listener: function(e, o, a)
   {
+    if( this._debug )
+      console.log('DEBUG (' + this._id + '): got mouse.');
+
     if (this.is_touch) return;
 
     var x = (e.pageX - o.canvas.offsetLeft) / this.scale;
@@ -1010,6 +1048,9 @@ var Widget = Base.extend({
    */
   _touch_listener: function(e, o, a)
   {
+    if( this._debug )
+      console.log('DEBUG: got touch.');
+
     e.preventDefault();
     var touches = e.changedTouches;
     var first = touches[0];
@@ -1144,6 +1185,7 @@ var Widget = Base.extend({
           {
             var x_delta = Math.abs(x - this.pressed_x);
             var y_delta = Math.abs(y - this.pressed_y);
+
             if( this.is_dragged )
             {
               // execute the system callback
@@ -1154,7 +1196,7 @@ var Widget = Base.extend({
                 handled |= this.event_cb['mouse_drag_move'](this, x, y);
 
             }
-            else if( x_delta > 20 || y_delta > 20 )
+            else if( x_delta > 5 || y_delta > 5 )
             {
               this.is_dragged = true;
 
