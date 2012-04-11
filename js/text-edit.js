@@ -59,7 +59,7 @@ TextEdit.prototype.add_event_listener = function(a, cb)
 }
 
 
-TextEdit.prototype.set_background_image_up = function(path)
+TextEdit.prototype.setBackgroundImage_up = function(path)
 {
   this.background_image_up = new Image();
 
@@ -73,7 +73,7 @@ TextEdit.prototype.set_background_image_up = function(path)
   this.background_image = this.background_image_up;
 }
 
-TextEdit.prototype.set_background_image_down = function(path)
+TextEdit.prototype.setBackgroundImage_down = function(path)
 {
   this.background_image_down = new Image();
 

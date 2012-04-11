@@ -34,13 +34,12 @@ var CheckBox = Widget.extend({
 
     this.checked = false;
 
-    this.set_text_alignment_horizontal('center');
-    this.set_text_alignment_vertical('middle');
+    this.setTextAlignmentHorizontal('center');
+    this.setTextAlignmentVertical('middle');
 
     // overlay
     this.overlay = null;
-    this.set_overlay_alignment_horizontal('center');
-    this.set_overlay_alignment_vertical('middle');
+    this.setOverlayAlignment('center', 'middle');
     this.overlay_image = null;
 
     // turn of clipping to handle the overlay
@@ -49,7 +48,7 @@ var CheckBox = Widget.extend({
 
   //
   // OVERLAY IMAGE (ON CHECKED)
-  set_overlay_image: function(i)
+  setOverlayImage: function(i)
   {
     if( i instanceof Image )
     {
@@ -58,7 +57,7 @@ var CheckBox = Widget.extend({
       if( i.complete && i.width > 0 )
       {
         this._overlay_calculate_offset();
-        this.set_dirty(true);
+        this.setDirty(true);
       }
     }
     else
@@ -73,19 +72,19 @@ var CheckBox = Widget.extend({
       var self = this;
       this.overlay_image.onload = function() {
         self._overlay_calculate_offset();
-        self.set_dirty(true);
+        self.setDirty(true);
       };
     }
   },
 
 
-  set_overlay_alignment: function(h, v)
+  setOverlayAlignment: function(h, v)
   {
-    this.set_overlay_alignment_horizontal(h);
-    this.set_overlay_alignment_vertical(v);
+    this.setOverlayAlignmentHorizontal(h);
+    this.setOverlayAlignmentVertical(v);
   },
 
-  set_overlay_alignment_horizontal: function(type)
+  setOverlayAlignmentHorizontal: function(type)
   {
     type = type || 'left';
 
@@ -105,7 +104,7 @@ var CheckBox = Widget.extend({
   },
 
 
-  set_overlay_alignment_vertical: function(type)
+  setOverlayAlignmentVertical: function(type)
   {
     type = type || 'top';
 

@@ -34,373 +34,292 @@ var Button = Widget.extend({
     this.base.apply(this, arguments);
     this._type = 'Button';
 
-    // stores type and states of button
-    this.type_states = {
-      'types': ['_default'],
-      'active_type': '_default',
-      'states': ['_default'],
-      'active_state': '_default',
-      'objects': {
-        '_default': {
-          '_default': {
-              'image': new Image(),
-              'bounds': new Rect(this._bounds),
-              'animate': false
-          }
-        }
+    this._layers_valid  = ['_default'];
+    this._layers_active = '_default';
+    this._layers = {
+      _default: {
+        image:    null,
+        bounds:   new Rect(this._bounds),
+        animate:  false,
       }
     };
 
-    this.type_alignment_horizontal = 'center';
-    this.type_alignment_vertical = 'middle';
+    this._layer_alignment_horizontal = 'center';
+    this._layer_alignment_vertical = 'middle';
 
     // overlay
-    this.overlay = null;
-    this.overlay_alignment_horizontal = 'center';
-    this.overlay_alignment_vertical = 'middle';
-    this.overlay_image = null;
+    this._overlay = null;
+    this._overlay_alignment_horizontal = 'center';
+    this._overlay_alignment_vertical = 'middle';
+    this._overlay_image = null;
 
     // turn of clipping to handle the overlay
-    this.clip = false;
+    this._clip = false;
 
     return this;
   },
 
 
-  set_overlay_image: function(i)
+  setOverlayImage: function(i)
   {
     if( i instanceof Image )
     {
-      this.overlay_image = i;
+      this._overlay_image = i;
 
-      if( i.complete && i.width > 0 )
+      if( i.naturalWidth > 0 )
       {
-        this.overlay_calculate_offset();
-        this.set_dirty(true);
+        this._overlay_calculate_offset();
+        this.setDirty(true);
       }
     }
     else
     {
-      this.overlay_image = new Image();
+      this._overlay_image = new Image();
 
-      this.overlay_image.src = i;
-      this.overlay_image.onerror = function(){ console.error('Unable to load image: ' + this.src); };
+      this._overlay_image.src = i;
+      this._overlay_image.onerror = function(){ console.error('Unable to load image: ' + this.src); };
 
       var self = this;
-      this.overlay_image.onload = function() {
-        self.overlay_calculate_offset();
-        self.set_dirty(true);
+      this._overlay_image.onload = function() {
+        self._overlay_calculate_offset();
+        self.setDirty(true);
       };
     }
+
+    return this;
   },
 
 
-  set_overlay_alignment: function(h, v)
+  setOverlayAlignment: function(_style)
   {
-    this.set_overlay_alignment_horizontal(h);
-    this.set_overlay_alignment_vertical(v);
+    _style = ( typeof _style === 'object' ) ? _style : {};
+    _style.horizontal = _style.horizontal || _style.h || '';
+    _style.vertical = _style.vertical || _style.v || '';
+
+    var _update = false;
+
+    if( _style.horizontal )
+    {
+      switch( _style.horizontal )
+      {
+        case 'left':
+        case 'center':
+        case 'right':
+          this._overlay_alignment_horizontal = _style.horizontal;
+          _update = true;
+          break;
+        default:
+          console.warn('Button.setOverlayAlignment: Unknown horizontal alignment type specified.');
+          break;
+      }
+    }
+
+    if( _style.vertical )
+    {
+      switch( _style.vertical )
+      {
+        case 'top':
+        case 'middle':
+        case 'bottom':
+          this._overlay_alignment_vertical = _style.vertical;
+          break;
+        default:
+          console.warn('Button.setOverlayAlignment: Unknown vertical alignment type specified.');
+          break;
+      }
+    }
+
+    if( _update )
+    {
+      this._overlay_calculate_offset();
+    }
+
+    return this;
   },
 
-
-  set_overlay_alignment_horizontal: function(type)
+  addLayers: function(_layers)
   {
-    type = type || 'left';
+    _layers = _layers || [];
 
-    switch( type )
+    if( ! ( _layers instanceof Array ) )
     {
-      case 'left':
-      case 'center':
-      case 'right':
-        this.overlay_alignment_horizontal = type;
-        break;
-      default:
-        this.overlay_alignment_horizontal = 'left';
-        break;
+      _layers = [ _layers ];
     }
 
-    this.overlay_calculate_offset();
-  },
-
-
-  set_overlay_alignment_vertical: function(type)
-  {
-    type = type || 'top';
-
-    switch( type )
+    for( var i=0, l=_layers.length; i<l; i++ )
     {
-      case 'top':
-      case 'middle':
-      case 'bottom':
-        this.overlay_alignment_vertical = type;
-        break;
-      default:
-        this.overlay_alignment_vertical = 'middle';
-        break;
-    }
+      var _id = _layers[i];
 
-    this.overlay_calculate_offset();
-  },
-
-  // TODO: Private
-  overlay_calculate_offset: function()
-  {
-    if( this.overlay == null )
-      this.overlay = new Rect(this._bounds);
-    else
-    {
-      this.overlay.x = this._bounds.x;
-      this.overlay.y = this._bounds.y;
-    }
-
-    this.overlay.w = this.overlay_image.width || this.overlay.w;
-    this.overlay.h = this.overlay_image.height || this.overlay.h;
-
-    // horizontal alignment
-    switch( this.overlay_alignment_horizontal )
-    {
-      case 'center':
-        this.overlay.x -= (this.overlay.w - this._bounds.w) / 2;
-        break;
-      case 'bottom':
-        this.overlay.x -= (this.overlay.w - this._bounds.w);
-        break;
-    }
-
-    // middle alignment
-    switch( this.overlay_alignment_vertical )
-    {
-      case 'middle':
-        this.overlay.y -= (this.overlay.h - this._bounds.h) / 2;
-        break;
-      case 'bottom':
-        this.overlay.y -= (this.overlay.h - this._bounds.h);
-        break;
-    }
-  },
-
-
-  add_types: function(type)
-  {
-    type = type || [];
-
-    if( ! type instanceof Array )
-      type = [ type ];
-
-    for( t in type )
-    {
-      var new_type = type[t];
-
-      if ( this.type_states['types'].indexOf(new_type) == -1 )
+      if( this._layers_valid.indexOf(_id) == -1 )
       {
         // store the known type
-        this.type_states['types'].push(new_type);
+        this._layers_valid.push(_id);
 
         // add default image for types
-        this.type_states['objects'][new_type] = {
-          '_default': {
-            'image': null,
-            'bounds': new Rect(this._bounds),
-            'animate': false
-          }
-        };
+        this._layers[_id] = {
+          image:    null,
+          bounds:   new Rect(this._bounds),
+          animate:  false
+        }
 
         // if no active type defined yet then define
-        if( this.type_states['active_type'] == null )
-          this.type_states['active_type'] = new_type;
+        if( this.layers_active == null )
+        {
+          this.layers_active = _id;
+        }
       }
       else
-        console.log("Type already exists: " + new_type);
+      {
+        console.log("Button.addLayer: ID already exists: " + _id);
+      }
     }
+
+    return this;
   },
 
-
-  set_active_type: function(type)
+  setActiveLayer: function(_id)
   {
-    if ( type == null || type == '' )
-      type = '_default';
+    if( _id == null || _id == '' )
+      _id = '_default';
 
     // check if we are already active
-    if (this.type_states['active_type'] === type)
+    if( this.layers_active === _id )
       return;
 
-    if ( this.type_states['types'].indexOf(type) == -1 )
+    if( this.layers_valid.indexOf(t_id) == -1 )
     {
-      console.error('Type ' + type + ' is not available.');
-      return;
+      console.error('Button.setActiveLayer: ID does not exist: ' + _id);
+      return this;
     }
 
-    this.type_states['active_type'] = type;
+    this.layers_active = _id;
 
-    var ts = this.type_states['objects'][type][this.type_states['active_state']];
+    this.setDirty(true);
 
-    this.set_dirty(true);
+    return this;
   },
 
 
-  set_type_image_default: function(type, i)
+  setLayerImage: function(_id, _image)
   {
-    if ( this.type_states['types'].indexOf(type) == -1 )
+    if ( this._layers_valid.indexOf(_id) === -1 )
     {
-      console.warn("Type " + type + " is not available");
-      return;
+      console.warn('Button.setLayerImage: Type ' + _id + ' is not available.');
+      return this;
     }
 
-    if( i instanceof Image )
+    if( _image instanceof Image )
     {
-      this.type_states['objects'][type]['_default']['image'] = i;
+      this._layers[_id].image = _image;
 
-      if( i.complete && i.width > 0 )
+      if( _image.naturalWidth > 0 )
       {
-        this._type_calculate_offset();
-        this.set_dirty(true);
+        this._layer_calculate_offset(_id);
+        this.setDirty(true);
       }
     }
     else
     {
-      this.type_states['objects'][type]['_default']['image'] = new Image();
+      this._layers[_id].image = new Image();
 
-      this.type_states['objects'][type]['_default']['image'].src = i;
-      this.type_states['objects'][type]['_default']['image'].onerror = function(){ console.warn("Unable to load image: " + this.src); };
+      this._layers[_id].image.src = _image;
+      this._layers[_id].image.onerror = function(){ console.warn("Unable to load image: " + this.src); };
 
       var self = this;
-      this.type_states['objects'][type]['_default']['image'].onload = function() {
-        self._type_calculate_offset(type);
-        self.set_dirty(true);
+      this._layers[_id].image.onload = function() {
+        self._layer_calculate_offset(_id);
+        self.setDirty(true);
       };
     }
+
+    return this;
   },
 
-
-  set_type_alignment: function(t, h, v)
+  setLayerAlignment: function(t, h, v)
   {
-    this.set_overlay_type_horizontal(t, h);
-    this.set_overlay_type_vertical(t, v);
-  },
+    _style = ( typeof _style === 'object' ) ? _style : {};
 
+    var _update = false;
 
-  set_type_alignment_horizontal: function(type, mode)
-  {
-    if ( this.type_states['types'].indexOf(type) == -1 )
+    if( _style.horizontal )
     {
-      console.error('Type ' + type + ' is not available.');
-      return;
-    }
-
-    mode = mode || 'left';
-
-    switch( type )
-    {
-      case 'left':
-      case 'center':
-      case 'right':
-        this.type_alignment_horizontal = mode;
-        break;
-      default:
-        this.type_alignment_horizontal = 'left';
-        break;
-    }
-
-    this._type_calculate_offset();
-  },
-
-
-  set_type_alignment_vertical: function(mode)
-  {
-    if ( this.type_states['types'].indexOf(type) == -1 )
-    {
-      console.error('Type ' + type + ' is not available.');
-      return;
-    }
-
-    mode = mode || 'top';
-
-    switch( mode )
-    {
-      case 'top':
-      case 'middle':
-      case 'bottom':
-        this.type_alignment_vertical = type;
-        break;
-      default:
-        this.type_alignment_vertical = 'middle';
-        break;
-    }
-
-    this._type_calculate_offset();
-  },
-
-
-
-  add_states: function(state)
-  {
-    state = state || [];
-
-    if( ! state instanceof Array )
-      state = [ state ];
-
-    for( s in state )
-    {
-      var new_state = state[s];
-
-      if ( this.type_states['states'].indexOf(new_state) == -1 )
+      switch( _style.horizontal )
       {
-        this.type_states['states'].push(new_state);
-
-        if( this.type_states['active_state'] == null )
-          this.type_states['active_state'] = state[s];
+        case 'left':
+        case 'center':
+        case 'right':
+          this._layer_alignment_horizontal = _style.horizontal;
+          _update = true;
+          break;
+        default:
+          console.warn('Button.setlayerAlignment: Unknown horizontal alignment type specified.');
+          break;
       }
-      else
-        console.log("State already exists: " + s);
-    }
-  },
-
-  get_active_state: function()
-  {
-    return this.type_states['active_state'];
-  },
-
-  set_active_state: function(state)
-  {
-    if ( state == null || state == '' ) {
-      state = '_default';
     }
 
-    if ( this.type_states['states'].indexOf(state) == -1 )
+    if( _style.vertical )
     {
-      console.warn("State " + state + " is not available");
+      switch( _style.vertical )
+      {
+        case 'top':
+        case 'middle':
+        case 'bottom':
+          this._layer_alignment_vertical = _style.vertical;
+          break;
+        default:
+          console.warn('Button.setlayerAlignment: Unknown vertical alignment type specified.');
+          break;
+      }
+    }
+
+    if( _update )
+    {
+      this._layer_calculate_offset();
+    }
+
+    return this;
+  },
+
+  getActiveLayer: function()
+  {
+    return this._layers_active;
+  },
+
+  setActiveLayer: function(_id)
+  {
+    if( _id == null || _id == '' ) {
+      _id = '_default';
+    }
+
+    if( this._layers_valid.indexOf(_id) == -1 )
+    {
+      console.warn('Button.setActiveLayer: Layer ' + _id + ' is not available.');
       return;
     }
 
     // check if we're already in the active state
-    if (this.type_states['active_state'] == state) {
+    if( this._layers_active === _id ) {
       return;
     }
 
     // set our widget state
-    this.type_states['active_state'] = state;
+    this._layers_active = _id;
 
     // FIXME:
 
-    var type = this.type_states['active_type'];
+    var type = this._layers_active;
 
     // TODO: if state not available for type we need have a default type
-    if( ! (state in this.type_states['objects'][type]) )
-    {
-      if( state in this.type_states['objects']['_default'] )
-        type = '_default';
-      else
-        state = '_default';
-    }
 
-    var ts = this.type_states['objects'][type][state];
+    var _layer = this._layers[_id];
 
-    if( ts && ts['animate'] && this.animate.length == 0)
+    if( _layer && _layer.animate && this.animate.length == 0)
     {
-      var frames_w = ts['image'].width / ts['animate_bounds'].w;
-      var frames_h = ts['image'].height / ts['animate_bounds'].h;
+      var frames_w = _layer.image.width / _layer.animate_bounds.w;
+      var frames_h = _layer.image.height / _layer.animate_bounds.h;
       var frames = frames_w * frames_h;
 
-      var delay = Math.floor(ts['animate_speed'] / ANIMATE_FRAME_TIME_SPACING);
+      var delay = Math.floor(_layer.animate_speed / ANIMATE_FRAME_TIME_SPACING);
       if( delay <= 0 )
         delay = 1;
 
@@ -408,18 +327,18 @@ var Button = Widget.extend({
       this.animate.push({
         frames:   frames * delay,
         index:    0,
-        loop:     ts['animate_loops'] == -1,
+        loop:     _layer.animate_loops == -1,
         process:  function(frame) {
           if( (frame % delay) == 0 )
           {
             // advance in the x (these are noops if vertically stacked only)
-            ts['animate_bounds'].x += ts['animate_bounds'].w;
-            ts['animate_bounds'].x %= ts['bounds'].w;
+            _layer.animate_bounds.x += _layer.animate_bounds.w;
+            _layer.animate_bounds.x %= _layer.bounds.w;
 
             // advance in the y (these are noops if horizontally stacked only)
-            if( ts['animate_bounds'].x === 0 ) {
-              ts['animate_bounds'].y += ts['animate_bounds'].h;
-              ts['animate_bounds'].y %= ts['bounds'].h;
+            if( _layer.animate_bounds.x === 0 ) {
+              _layer.animate_bounds.y += _layer.animate_bounds.h;
+              _layer.animate_bounds.y %= _layer.bounds.h;
             }
           }
         }
@@ -430,129 +349,121 @@ var Button = Widget.extend({
       // TODO: this is brute force, we should only clear any button state animations
       this.animate = [];
 
-    this.set_dirty(true);
+    this.setDirty(true);
+
+    return this;
   },
 
 
-  set_state_image_default: function(state, i)
+  setLayerAnimate: function(_id, s, l)
   {
-    if ( this.type_states['states'].indexOf(state) == -1 )
+    if( this._layers_valid.indexOf(_id) == -1 )
     {
-      console.warn('State "' + state + '" is not available');
-      return;
+      console.warn('Button.setLayerAnimate: Layer "' + _id + '" is not available.');
+      return this;
     }
 
-    // add default image for types
-    this.type_states['objects']['_default'][state] = {
-      'bounds': new Rect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h),
-      'animate': false
-    };
+    var _layer = this._layers[_id];
+    _layer.animate = true;
+    _layer.animate_bounds = new Rect(0, 0, this._bounds.w, this._bounds.h);
+    _layer.animate_speed = s;
+    _layer.animate_loops = l;
 
-    if( i instanceof Image )
-    {
-      this.type_states['objects']['_default'][state]['image'] = i;
-
-      if( i.complete && i.width > 0 )
-      {
-        this._type_calculate_offset();
-        this.set_dirty(true);
-      }
-    }
-    else
-    {
-      this.type_states['objects']['_default'][state]['image'] = new Image(),
-
-
-      this.type_states['objects']['_default'][state]['image'].src = i;
-      this.type_states['objects']['_default'][state]['image'].onerror = function(){ console.warn("Unable to load image: " + this.src); };
-
-      var self = this;
-      this.type_states['objects']['_default'][state]['image'].onload = function() {
-        self._type_calculate_offset();
-        self.set_dirty(true);
-      };
-    }
+    return this;
   },
 
-
-  set_state_image_animate: function(state, s, l)
-  {
-    if ( this.type_states['states'].indexOf(state) == -1 )
-    {
-      console.warn('State "' + state + '" is not available');
-      return;
-    }
-
-    var ts = this.type_states['objects']['_default'][state];
-    ts['animate'] = true;
-    ts['animate_bounds'] = new Rect(0, 0, this._bounds.w, this._bounds.h);
-    ts['animate_speed'] = s;
-    ts['animate_loops'] = l;
-  },
-
-
-  set_type_state_image: function(type, state, i)
-  {
-    if ( this.type_states['types'].indexOf(type) == -1 )
-    {
-      console.warn("Type " + type + " is not available");
-      return;
-    }
-    else if ( this.type_states['states'].indexOf(state) == -1 )
-    {
-      console.warn("State " + state + " is not available");
-      return;
-    }
-
-    // add object if not instatiated yet
-    if ( ! this.type_states['objects'][type][state] )
-    {
-      this.type_states['objects'][type][state] = {
-        'image':  null,
-        'bounds':  new Rect(0, 0, 0, 0)
-      }
-    }
-
-    if( i instanceof Image )
-    {
-      this.type_states['objects'][type][state]['image'] = i;
-
-      if( i.complete && i.width > 0 )
-      {
-        this._type_calculate_offset();
-        this.set_dirty(true);
-      }
-    }
-    else
-    {
-      if( this.type_states['objects'][type][state]['image'] == null )
-        this.type_states['objects'][type][state]['image'] = new Image();
-
-      this.type_states['objects'][type][state]['image'].src = i;
-      this.type_states['objects'][type][state]['image'].onerror = function(){ console.warn('Unable to load image: ' + this.src); };
-
-      var self = this;
-      this.type_states['objects'][type][state]['image'].onload = function() {
-        self._type_calculate_offset(type);
-        self.set_dirty(true);
-      };
-    }
-  },
-
-
-  set_image_down: function(path)
-  {
-    this.image_down = new Image();
-
-    this.image_down.src = path;
-    this.image_down.onerror = function() { console.warn('Unable to load image: ' + this.src); };
-
-    var self = this;
-    this.image_down.onload = function() { self.set_dirty(true); };
-  },
 
   //
   // PRIVATE
+
+  _layer_calculate_offset: function(_layers)
+  {
+    // resize all types if no type defined
+    _layers = _layers || this._layers;
+
+    if( ! _layers instanceof Array )
+    {
+      _layers = [ _layers ];
+    }
+
+    for( var i=0, l=_layers.length; i<l; i++ )
+    {
+      var _id = _layers[i];
+
+      if( ! this._layers[_id] )
+      {
+        continue;
+      }
+
+      var _layer = this._layers[ _id ];
+
+      if( _layer.image instanceof Image &&
+          _layer.image.naturalWidth > 0 )
+      {
+          _layer.bounds.w = _layer.image.naturalWidth;
+          _layer.bounds.h = _layer.image.naturalHeight;
+      }
+
+      // horizontal alignment
+      switch( this._layer_alignment_horizontal )
+      {
+        case 'center':
+          _layer.bounds.x -= (_layer.bounds.w - this._bounds.w) / 2;
+          break;
+        case 'right':
+          _layer.bounds.x -= (_layer.bounds.w - this._bounds.w);
+          break;
+      }
+
+      // vertical alignment
+      switch( this._layer_alignment_vertical )
+      {
+        case 'middle':
+          _layer.bounds.y -= (_layer.bounds.h - this._bounds.h) / 2;
+          break;
+        case 'bottom':
+          _layer.bounds.y -= (_layer.bounds.h - this._bounds.h);
+          break;
+      }
+    }
+  },
+
+  _overlay_calculate_offset: function()
+  {
+    if( this._overlay == null )
+    {
+      this._overlay = new Rect(this._bounds);
+    }
+
+    if( this._overlay_image instanceof Image &&
+        this._overlay_image.naturalWidth > 0 )
+    {
+      this._overlay.w = this._overlay_image.width;
+      this._overlay.h = this._overlay_image.height;
+    }
+
+    // horizontal alignment
+    switch( this._overlay_alignment_horizontal )
+    {
+      case 'center':
+        this._overlay.x -= (this._overlay.w - this._bounds.w) / 2;
+        break;
+      case 'right':
+        this._overlay.x -= (this._overlay.w - this._bounds.w);
+        break;
+    }
+
+    // middle alignment
+    switch( this._overlay_alignment_vertical )
+    {
+      case 'middle':
+        this._overlay.y -= (this._overlay.h - this._bounds.h) / 2;
+        break;
+      case 'bottom':
+        this._overlay.y -= (this._overlay.h - this._bounds.h);
+        break;
+    }
+  },
 
   _render_widget: function(context)
   {
@@ -570,124 +481,47 @@ var Button = Widget.extend({
       context.drawImage(this.background_image, this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
-    var type = this.type_states['active_type'];
+    var _layer = this._layers[ this._layers_active ];
 
-    // draw type as appropriate
-    if( type != null &&
-        type != '' )
+    if( 'image' in _layer &&
+        _layer.image instanceof Image &&
+        _layer.image.naturalWidth > 0 )
     {
-      var state = ( this.type_states['active_state'] != null &&
-                    this.type_states['active_state'] != '' ) ? this.type_states['active_state'] : '_default';
+      // TODO: optimise this hack out (introduced due to late loading of images via the cache)
+      if( _layer.bounds.w === 0 )
+        this._type_calculate_offset();
 
-      // TODO: if state not available for type we need have a default type
-      if( ! (state in this.type_states['objects'][type]) )
+      if( 'animate_bounds' in _layer )
       {
-        if( state in this.type_states['objects']['_default'] )
-          type = '_default';
-        else
-          state = '_default';
+        context.drawImage(_layer.image,
+                          _layer.animate_bounds.x,
+                          _layer.animate_bounds.y,
+                          _layer.animate_bounds.w,
+                          _layer.animate_bounds.h,
+                          this._bounds.x,
+                          this._bounds.y,
+                          this._bounds.w,
+                          this._bounds.h);
       }
-
-      var ts = this.type_states['objects'][type][state];
-
-      if( 'image' in ts &&
-          ts['image'] instanceof Image &&
-          ts['image'].width > 0 )
+      else
       {
-        // TODO: optimise this hack out (introduced due to late loading of images via the cache)
-        if( ts['bounds'].w === 0 )
-          this._type_calculate_offset();
-
-        if( 'animate_bounds' in ts )
-        {
-          context.drawImage(ts['image'],
-                            ts['animate_bounds'].x,
-                            ts['animate_bounds'].y,
-                            ts['animate_bounds'].w,
-                            ts['animate_bounds'].h,
-                            this._bounds.x,
-                            this._bounds.y,
-                            this._bounds.w,
-                            this._bounds.h);
-        }
-        else
-        {
-          context.drawImage(ts['image'],
-                            this._bounds.x,
-                            this._bounds.y,
-                            this._bounds.w,
-                            this._bounds.h);
-        }
+        context.drawImage(_layer.image,
+                          this._bounds.x,
+                          this._bounds.y,
+                          this._bounds.w,
+                          this._bounds.h);
       }
     }
 
     // draw the overlay if exists
     if( this.is_pressed &&
-        this.overlay_image instanceof Image &&
-        this.overlay_image.naturalWidth > 0 )
+        this._overlay_image instanceof Image &&
+        this._overlay_image.naturalWidth > 0 )
     {
-      context.drawImage(this.overlay_image, this.overlay.x, this.overlay.y, this.overlay.w, this.overlay.h);
+      context.drawImage(this._overlay_image, this._overlay.x, this._overlay.y, this._overlay.w, this._overlay.h);
     }
 
     this._render_caption(context);
   },
 
-  _type_calculate_offset: function(types)
-  {
-    // resize all types if no type defined
-    types = types || this.type_states['types'];
-
-    for( t in types )
-    {
-      var type = types[t];
-
-      // resize for all states include default
-      var states = this.type_states['states'];
-
-      for( s in states )
-      {
-        var state = states[s];
-
-        if( ! this.type_states['objects'][type] ||
-            ! this.type_states['objects'][type][state] )
-          continue;
-
-        this.type_states['objects'][type][state]['bounds'].x = this._bounds.x;
-        this.type_states['objects'][type][state]['bounds'].y = this._bounds.y;
-
-        if( this.type_states['objects'][type][state]['image'] instanceof Image )
-        {
-          this.type_states['objects'][type][state]['bounds'].w = this.type_states['objects'][type][state]['image'].width || this._bounds.w;
-          this.type_states['objects'][type][state]['bounds'].h = this.type_states['objects'][type][state]['image'].height || this._bounds.h;
-        }
-        else
-        {
-          this.type_states['objects'][type][state]['bounds'].w = this._bounds.w;
-          this.type_states['objects'][type][state]['bounds'].h = this._bounds.h;
-        }
-
-        // horizontal alignment
-        switch( this.type_alignment_horizontal )
-        {
-          case 'center':
-            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this._bounds.w) / 2;
-            break;
-          case 'bottom':
-            this.type_states['objects'][type][state]['bounds'].x -= (this.type_states['objects'][type][state]['bounds'].w - this._bounds.w);
-            break;
-        }
-
-        // vertical alignment
-        switch( this.type_alignment_vertical )
-        {
-          case 'middle':
-            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this._bounds.h) / 2;
-            break;
-          case 'bottom':
-            this.type_states['objects'][type][state]['bounds'].y -= (this.type_states['objects'][type][state]['bounds'].h - this._bounds.h);
-            break;
-        }
-      }
-    }
-  },
 });

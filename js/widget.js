@@ -36,9 +36,14 @@ var Widget = Base.extend({
   _tag:       '',
 
   _bounds:    null,
+  _bounds_a:  null,
+  _bounds_r:  null,
 
   _id:        'unknown',
   _debug:     false,
+
+  _alpha:     1.0,
+  _clip:      true,
 
   /**
    * @constructor
@@ -66,7 +71,7 @@ var Widget = Base.extend({
     this._parent = null;
     this._children = [];
 
-    this.set_parent(p);
+    this.setParent(p);
 
     // animate stack
     this.animate = [];
@@ -102,22 +107,21 @@ var Widget = Base.extend({
     this.caption     = s.caption;
     this._font       = s.font;
     this._font_color = s.font_color;
-    this.set_text_alignment_horizontal( s.text_alignment_horizontal );
-    this.set_text_alignment_vertical( s.text_alignment_vertical );
+    this.setTextAlignmentHorizontal( s.text_alignment_horizontal );
+    this.setTextAlignmentVertical( s.text_alignment_vertical );
 
     this.background_image = s.background_image;
 
     // process/render state
     this._visible = true;
-    this.dirty = true;
-    this.alpha = 1.0;
-    this.clip = true;
-    this.scale = 1.0;
+    this._dirty = true;
+    this._alpha = 1.0;
+    this._clip = false;
+    this._scale = 1.0;
 
-    this.looping = false;
     this._loop_timer = null;
-    this.canvas = null;
-    this.context = null;
+    this._canvas = null;
+    this._context = null;
 
     this._debug = false;
 
@@ -133,7 +137,7 @@ var Widget = Base.extend({
 
     // multi line support
     this.multi_line_text_enabled = false;
-    this.text_height = this._font.get_height();
+    this.text_height = this._font.getHeight();
   },
 
 
@@ -159,17 +163,17 @@ var Widget = Base.extend({
   /**
    *
    */
-  get_root: function()
+  getRoot: function()
   {
     if( this._is_root )
       return this;
     else if( ! ( this._parent instanceof Widget ) )
       return null;
     else
-      return this._parent.get_root();
+      return this._parent.getRoot();
   },
 
-  is_root: function()
+  isRoot: function()
   {
     return this._is_root;
   },
@@ -177,10 +181,10 @@ var Widget = Base.extend({
   /**
    *
    */
-  set_root: function()
+  setRoot: function()
   {
     if( this._parent instanceof Widget )
-      console.warn('Widget.set_root: This widget has a parent.');
+      console.warn('Widget.setRoot: This widget has a parent.');
 
     this._is_root = true;
 
@@ -190,15 +194,15 @@ var Widget = Base.extend({
   /**
    * set the parent widget for this
    */
-  set_parent: function(p)
+  setParent: function(p)
   {
     // add widget as parent object if appropriate
     if( p instanceof Widget )
     {
       this._parent = p;
-      this._root = p.get_root();
+      this._root = p.getRoot();
 
-      p.add_child(this);
+      p.addChild(this);
     }
     else
       this._root = this;
@@ -209,21 +213,15 @@ var Widget = Base.extend({
   /**
    * Add a child widget to this
    */
-  add_child: function(c)
+  addChild: function(c)
   {
     // add child to list of children
     if( c instanceof Widget )
       this._children.push(c);
     else
-      console.error('Widget.add_child: Non widget instance provided.');
+      console.error('Widget.addChild: Non widget instance provided.');
 
     return this;
-  },
-
-
-  get_ancestor_length: function()
-  {
-    return 1 + ( this._parent instanceof Widget ? this._parent.get_ancestor_length() : 0 );
   },
 
   //
@@ -235,12 +233,12 @@ var Widget = Base.extend({
    * is 1 pixel so if the bounds x scale is less than 1 pixel
    * then we can't see it
    */
-  set_scale: function(s)
+  setScale: function(s)
   {
     if( s > 0 )
-      this.scale = s;
+      this._scale = s;
     else
-      console.error('Widget.set_scale: Scale must a positive real number.');
+      console.error('Widget.setScale: Scale must a positive real number.');
 
     return this;
   },
@@ -250,24 +248,24 @@ var Widget = Base.extend({
    * alpha are small enough then we can't. Also if the
    * visible boolean is false we are not rendered
    */
-  get_visibility: function()
+  getVisibility: function()
   {
     return this._visible &&
-           ( this.alpha > 0 ) &&
-           ( this.scale > 0 );
+           ( this._alpha > 0 ) &&
+           ( this._scale > 0 );
   },
 
   /**
    * Sets the visible state
    */
-  set_visibility: function(state)
+  setVisibility: function(state)
   {
     this._visible = ( state ) ? true : false;
 
     return this;
   },
 
-  toggle_visibility: function()
+  toggleVisibility: function()
   {
     this._visible = ! this._visible;
 
@@ -280,7 +278,7 @@ var Widget = Base.extend({
   hide: function()
   {
     this._visible = false;
-    this.set_dirty(true);
+    this.setDirty(true);
 
     return this;
   },
@@ -295,7 +293,7 @@ var Widget = Base.extend({
     this._offset.set(0, 0);
     this._visible = true;
 
-    this.set_dirty(true);
+    this.setDirty(true);
 
     return this;
   },
@@ -365,8 +363,8 @@ var Widget = Base.extend({
       }
     });
 
-    this.set_visibility(true);
-    this.set_dirty(true);
+    this.setVisibility(true);
+    this.setDirty(true);
 
     return this;
   },
@@ -407,7 +405,7 @@ var Widget = Base.extend({
           .easing(t)
           .to({ x: 0}, s)
           .on_update( function(o) {
-            offset.x = o.x;
+            offset.x = Math.ceil(o.x);
           })
           .start(0);
         break;
@@ -416,7 +414,7 @@ var Widget = Base.extend({
           .easing(t)
           .to({ x: 0 }, s)
           .on_update( function(o) {
-            offset.x = o.x;
+            offset.x = Math.ceil(o.x);
           })
           .start(0);
         break;
@@ -425,7 +423,7 @@ var Widget = Base.extend({
           .easing(t)
           .to({ y: 0 }, s)
           .on_update( function(o) {
-            offset.y = o.y;
+            offset.y = Math.ceil(o.y);
           })
           .start(0);
         break;
@@ -434,7 +432,7 @@ var Widget = Base.extend({
           .easing(t)
           .to({ y: 0 }, s)
           .on_update( function(o) {
-            offset.y = o.y;
+            offset.y = Math.ceil(o.y);
           })
           .start(0);
         break;
@@ -456,8 +454,8 @@ var Widget = Base.extend({
       }
     });
 
-    this.set_visibility(true);
-    this.set_dirty(true);
+    this.setVisibility(true);
+    this.setDirty(true);
 
     return this;
   },
@@ -500,7 +498,7 @@ var Widget = Base.extend({
           .easing(t)
           .to({ x: -this._bounds.w }, s)
           .on_update( function(o) {
-            offset.x = o.x;
+            offset.x = Math.ceil(o.x);
           })
           .start(0);
         break;
@@ -509,7 +507,7 @@ var Widget = Base.extend({
           .easing(t)
           .to({ x: this._bounds.w }, s)
           .on_update( function(o) {
-            offset.x = o.x;
+            offset.x = Math.ceil(o.x);
           })
           .start(0);
         break;
@@ -518,7 +516,7 @@ var Widget = Base.extend({
           .easing(t)
           .to({ y: -this._bounds.h }, s)
           .on_update( function(o) {
-            offset.y = o.y;
+            offset.y = Math.ceil(o.y);
           })
           .start(0);
         break;
@@ -527,7 +525,7 @@ var Widget = Base.extend({
           .easing(t)
           .to({ y: -this._bounds.h }, s)
           .on_update( function(o) {
-            offset.y = o.y;
+            offset.y = Math.ceil(o.y);
           })
           .start(0);
         break;
@@ -546,13 +544,13 @@ var Widget = Base.extend({
         tween.update(i);
       },
       complete: function() {
-        self.set_visibility(false);
+        self.setVisibility(false);
         cb();
       }
     });
 
-    this.set_visibility(true);
-    this.set_dirty(true);
+    this.setVisibility(true);
+    this.setDirty(true);
 
     return this;
   },
@@ -564,7 +562,7 @@ var Widget = Base.extend({
   fadeToggle: function(s, t, cb)
   {
     // check if the widget is "faded in"
-    if( this.alpha === 0 )
+    if( this._alpha === 0 )
       this.fadeIn(s, cb);
     else
       this.fadeOut(s, cb);
@@ -578,11 +576,11 @@ var Widget = Base.extend({
   fadeIn: function(s, t, cb)
   {
     // check if the widget has fully faded in
-    if( this.alpha === 1 &&
+    if( this._alpha === 1 &&
         this.visibile )
       return;
 
-    this.alpha = 0;
+    this._alpha = 0;
 
     // set sane default speed
     s = parseInt(s);
@@ -604,16 +602,16 @@ var Widget = Base.extend({
       index:    0,
       loop:     false,
       process:  function() {
-        self.alpha += delta;
+        self._alpha += delta;
       },
       complete: function() {
-        self.alpha = 1;
+        self._alpha = 1;
         cb();
       }
     });
 
-    this.set_visibility(true);
-    this.set_dirty(true);
+    this.setVisibility(true);
+    this.setDirty(true);
 
     return this;
   },
@@ -624,10 +622,10 @@ var Widget = Base.extend({
   fadeOut: function(s, t, cb)
   {
     // check if we the widget is already "out"
-    if( ( this.alpha === 0 ) || ( ! this._visible ) )
+    if( ( this._alpha === 0 ) || ( ! this._visible ) )
       return;
 
-    this.alpha = 1;
+    this._alpha = 1;
 
     // set sane default speed
     s = s || 1000;
@@ -646,17 +644,17 @@ var Widget = Base.extend({
       index:    0,
       loop:     false,
       process:  function() {
-        self.alpha -= delta;
+        self._alpha -= delta;
       },
       complete: function() {
-        self.alpha = 0;
-        self.set_visibility(false);
+        self._alpha = 0;
+        self.setVisibility(false);
         cb();
       }
     });
 
-    this.set_visibility(true);
-    this.set_dirty(true);
+    this.setVisibility(true);
+    this.setDirty(true);
 
     return this;
   },
@@ -673,10 +671,10 @@ var Widget = Base.extend({
    *        * * *
    *        * * *
    */
-  set_text_alignment: function(h, v)
+  setTextAlignment: function(h, v)
   {
-    this.set_text_alignment_horizontal(h);
-    this.set_text_alignment_vertical(v);
+    this.setTextAlignmentHorizontal(h);
+    this.setTextAlignmentVertical(v);
 
     return this;
   },
@@ -684,7 +682,7 @@ var Widget = Base.extend({
   /**
    * sets the horizontal text alignment, center, left or right
    */
-  set_text_alignment_horizontal: function(m)
+  setTextAlignmentHorizontal: function(m)
   {
     switch( m )
     {
@@ -703,7 +701,7 @@ var Widget = Base.extend({
   /**
    * Sets the vertical text alignment top, middle, baseline
    */
-  set_text_alignment_vertical: function(m)
+  setTextAlignmentVertical: function(m)
   {
     switch( m )
     {
@@ -722,7 +720,7 @@ var Widget = Base.extend({
   /**
    * Sets the text caption to render for this widget
    */
-  set_caption: function(t)
+  setCaption: function(t)
   {
     // set the caption if we have a string
     if( typeof t === 'string' )
@@ -734,7 +732,7 @@ var Widget = Base.extend({
   /**
    * Returns the widgets text caption
    */
-  get_caption: function()
+  getCaption: function()
   {
     return this.caption;
   },
@@ -742,7 +740,7 @@ var Widget = Base.extend({
   /**
    * Sets the text font
    */
-  set_font: function(f)
+  setFont: function(f)
   {
     if( f instanceof Font )
       this._font = f;
@@ -755,12 +753,12 @@ var Widget = Base.extend({
   /**
    * Sets the text font color
    */
-  set_font_color: function(c)
+  setFontColor: function(c)
   {
     if( c instanceof Color )
       this._font_color = c;
     else
-      console.error('Widget.set_font_color: Must supply a Color object.');
+      console.error('Widget.setFontColor: Must supply a Color object.');
 
     return this;
   },
@@ -768,14 +766,14 @@ var Widget = Base.extend({
   /**
    * Sets the widget's background image
    */
-  set_background_image: function(i)
+  setBackgroundImage: function(i)
   {
     if( i instanceof HTMLImageElement )
     {
       this.background_image = i;
 
       if( i.naturalWidth > 0 )
-        this.set_dirty(true);
+        this.setDirty(true);
     }
     else if( typeof i === "string" )
     {
@@ -785,10 +783,10 @@ var Widget = Base.extend({
       this.background_image.onerror = function(){ alert("Unable to load image: " + this.src); };
 
       var self = this;
-      this.background_image.onload = function() { self.set_dirty(true); };
+      this.background_image.onload = function() { self.setDirty(true); };
     }
     else
-      console.error('Widget.set_background_image: Must supply an HTMLImageElement or valid path.');
+      console.error('Widget.setBackgroundImage: Must supply an HTMLImageElement or valid path.');
 
     return this;
   },
@@ -797,7 +795,7 @@ var Widget = Base.extend({
    * Sets the solid fill background color, we should also offer a set background
    * gradient to allow for gradient fills
    */
-  set_background_color: function(c)
+  setBackgroundColor: function(c)
   {
     if( c instanceof Color )
       this.background_color = c;
@@ -810,7 +808,7 @@ var Widget = Base.extend({
   /**
    * Set the border line width (0 == no border)
    */
-  set_border_width: function(borderWidth)
+  setBorderWidth: function(borderWidth)
   {
     this._border_width = ( parseInt(borderWidth) >= 0 ) ? parseInt(borderWidth) : 0;
   },
@@ -818,7 +816,7 @@ var Widget = Base.extend({
   /**
    * Set the border corner radius, also used to clip fill color
    */
-  set_border_radius: function(borderRadius)
+  setBorderRadius: function(borderRadius)
   {
     this._border_radius = ( parseInt(borderRadius) >= 0 ) ? parseInt(borderRadius): 0;
   },
@@ -889,19 +887,19 @@ var Widget = Base.extend({
   /**
    * Setup the canvas element and attach the event listeners
    */
-  set_canvas: function(canvas)
+  setCanvas: function(canvas)
   {
     if( ! ( canvas instanceof HTMLCanvasElement ) )
     {
-      console.error('Widget.set_canvas: You have not supplied a canvas element.');
+      console.error('Widget.setCanvas: You have not supplied a canvas element.');
       return;
     }
 
-    context = canvas.getContext("2d");
+    var context = canvas.getContext("2d");
 
     // store for later
-    this.canvas = canvas;
-    this.context = context;
+    this._canvas = canvas;
+    this._context = context;
 
     var self = this;
 
@@ -923,35 +921,38 @@ var Widget = Base.extend({
    * Sets the widget dirty, if it is visible try to
    * kick off a new update
    */
-  set_dirty: function(s, u)
+  setDirty: function(s, u)
   {
-    if( this.dirty === s )
+    if( this._dirty === s )
       return this;
 
     u = ( typeof u === 'boolean' ) ? u : true;
 
-    this.dirty = s;
+    this._dirty = s;
 
-    if( this.dirty && this._visible )
+    if( this._dirty && this._visible )
     {
-//        this._root.set_dirty();
+//        this._root.setDirty();
         this._root.update();
     }
 
     return this;
   },
 
-  is_dirty: function()
+  getDirty: function()
   {
     if( ! this._visible )
       return;
 
-    var is_dirty = this.dirty;
+    var _is_dirty = this._dirty;
 
-    for( c in this._children )
-      is_dirty |= this._children[c].is_dirty();
+    for( var c = 0, l=this._children.length; c < l; c++ )
+    {
+      // direct access to remove function overhead
+      _is_dirty |= this._children[ c ]._dirty;
+    }
 
-    return is_dirty;
+    return _is_dirty;
   },
 
 
@@ -959,7 +960,7 @@ var Widget = Base.extend({
   update: function(f)
   {
     // call root parent if child (ie rendering always occurs from the root node)
-    if( ! this.is_root() )
+    if( ! this._is_root )
     {
       console.error('Widget.update: Called from a non-root widget.');
       return;
@@ -973,13 +974,13 @@ var Widget = Base.extend({
 
     if( this._process() || f )
     {
-      this.context.save();
+      this._context.save();
 
-      this.context.scale(this.scale, this.scale);
+      this._context.scale(this._scale, this._scale);
 
-      this._render(this.context, 0, 0);
+      this._render(this._context, 0, 0);
 
-      this.context.restore();
+      this._context.restore();
 
       // reschedule if we're looping
       var self = this;
@@ -989,7 +990,6 @@ var Widget = Base.extend({
     }
   },
 
-  
   toString: function()
   {
     return this._type + ' { root: ' + this._is_root + ', visible: ' + this._visible +  ', bounds: ' + this._bounds.toString() + ', children: ' + this._children.length + ' }';
@@ -1002,11 +1002,11 @@ var Widget = Base.extend({
   /**
    *
    */
-  add_event_listener: function(a, cb)
+  addListener: function(a, cb)
   {
     if( this.valid_events.indexOf(a) === -1 )
     {
-      console.warn('Widget.add_event_listener: Invalid event type supplied: ' + a);
+      console.warn('Widget.addListener: Invalid event type supplied: ' + a);
       return;
     }
 
@@ -1033,8 +1033,8 @@ var Widget = Base.extend({
 
     if (this.is_touch) return;
 
-    var x = (e.pageX - o.canvas.offsetLeft) / this.scale;
-    var y = (e.pageY - o.canvas.offsetTop) / this.scale;
+    var x = (e.pageX - o._canvas.offsetLeft) / this._scale;
+    var y = (e.pageY - o._canvas.offsetTop) / this._scale;
 
     o._mouse_process(x, y, a);
   },
@@ -1076,8 +1076,8 @@ var Widget = Base.extend({
       }
     }
 
-    var x = (first.pageX - o.canvas.offsetLeft) / this.scale;
-    var y = (first.pageY - o.canvas.offsetTop) / this.scale;
+    var x = (first.pageX - o._canvas.offsetLeft) / this._scale;
+    var y = (first.pageY - o._canvas.offsetTop) / this._scale;
 
     o._mouse_process(x, y, mouse_type);
   },
@@ -1090,7 +1090,7 @@ var Widget = Base.extend({
     var handled = false;
 
     // ignore invisible widgets
-    if( ! this._visible || this.alpha === 0 )
+    if( ! this._visible || this._alpha === 0 )
       return handled;
 
     // shortcut mouse moves if the mouse is up
@@ -1107,7 +1107,7 @@ var Widget = Base.extend({
       if( this.is_pressed && a === 'mouse_up' )
       {
         this.is_pressed = false;
-        this.set_dirty(true);
+        this.setDirty(true);
       }
 
       return handled;
@@ -1166,7 +1166,7 @@ var Widget = Base.extend({
 
           this.is_pressed = false;
           this.is_dragged = false
-          this.set_dirty(true);
+          this.setDirty(true);
           break;
 
         case 'mouse_down':
@@ -1175,7 +1175,7 @@ var Widget = Base.extend({
           this.is_pressed = true;
           this.pressed_x = x;
           this.pressed_y = y;
-          this.set_dirty(true);
+          this.setDirty(true);
           break;
 
         case 'mouse_move':
@@ -1229,7 +1229,7 @@ var Widget = Base.extend({
       }
 
       this.is_dragged = false;
-      this.set_dirty(true);
+      this.setDirty(true);
     }
 
     return handled;
@@ -1242,7 +1242,6 @@ var Widget = Base.extend({
   _mouse_drag_start: function(x, y) {},
   _mouse_drag_move: function(x, y) {},
   _mouse_drag_end: function(x, y) {},
-
 
   //
   // PROCESS AND RENDERING
@@ -1288,19 +1287,21 @@ var Widget = Base.extend({
       this.animate = this.animate.filter( function(v){ return (v !== undefined); } );
 
       // mark this control as dirty due to an animation occuring
-      this.dirty = true;
+      this._dirty = true;
 
       // mark the parent of this widget dirty also, but don't force an update since
       // we're in the middle of an update
 //      if( this._parent )
-//        this._parent.set_dirty(true, false);
+//        this._parent.setDirty(true, false);
     }
 
     // track dirty states of children
-    var is_dirty = this.dirty
+    var is_dirty = this._dirty
 
-    for( c in this._children )
-      is_dirty |= this._children[c]._process();
+    for( var c = 0, l = this._children.length; c < l; c++ )
+    {
+      is_dirty |= this._children[ c ]._process();
+    }
 
     // return aggregate dirty state
     return is_dirty;
@@ -1318,11 +1319,11 @@ var Widget = Base.extend({
     // offset the view (accounts for animations)
     context.translate(x + this._offset.x, y + this._offset.y);
 
-    if( this.alpha > 0 && this.alpha < 1 )
-      context.globalAlpha = this.alpha;
+    if( this._alpha > 0 && this._alpha < 1 )
+      context.globalAlpha = this._alpha;
 
     // perform clipping as appropriate
-    if( this.clip )
+    if( this._clip )
     {
       context.beginPath();
       context.rect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
@@ -1331,16 +1332,18 @@ var Widget = Base.extend({
     }
 
     // draw the widget if we're actually dirty
-    // if( this.dirty )
+    // if( this._dirty )
       this._render_widget(context);
 
     // post process traversal
-    for( c in this._children )
-      this._children[c]._render(context, this._bounds.x, this._bounds.y);
+    for( var c = 0, l = this._children.length; c < l; c++ )
+    {
+      this._children[ c ]._render(context, this._bounds.x, this._bounds.y);
+    }
 
     context.restore();
 
-    this.dirty = false;
+    this._dirty = false;
   },
 
   /**
@@ -1357,7 +1360,7 @@ var Widget = Base.extend({
     // draw the widget
     if( this.background_color instanceof Color )
     {
-      context.fillStyle = this.background_color.get_rgba(this.alpha);
+      context.fillStyle = this.background_color.getRGBA(this._alpha);
       context.fillRect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
@@ -1413,10 +1416,10 @@ var Widget = Base.extend({
         break;
     }
 
-    context.font = this._font.get_font();
+    context.font = this._font.getFont();
 
     if( this._font_color instanceof Color )
-      context.fillStyle = this._font_color.get_rgba(this.alpha);
+      context.fillStyle = this._font_color.getRGBA(this._alpha);
 
     if(this.multi_line_text_enabled)
       this.fill_multi_line_text(context, this.caption, x, y);
@@ -1438,7 +1441,7 @@ var Widget = Base.extend({
     context.strokeStyle = 'black';
 
     if( this.background_color instanceof Color )
-      context.fillStyle = this.background_color.get_rgba(this.alpha);
+      context.fillStyle = this.background_color.getRGBA(this._alpha);
     else
       context.fillStyle = 'rgba(0,0,0,0)';
 
@@ -1477,7 +1480,7 @@ var Widget = Base.extend({
     context.strokeStyle = 'black';
 
     if( this.background_color instanceof Color )
-      context.fillStyle = this.background_color.get_rgba(this.alpha);
+      context.fillStyle = this.background_color.getRGBA(this._alpha);
 
     var w = this._bounds.w;
     var h = this._bounds.h;
@@ -1493,6 +1496,11 @@ var Widget = Base.extend({
 
     context.stroke();
     context.closePath();
+  },
+
+  _getAncestorLength: function()
+  {
+    return 1 + ( this._parent instanceof Widget ? this._parent._getAncestorLength() : 0 );
   },
 
 

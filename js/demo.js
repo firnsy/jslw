@@ -52,92 +52,91 @@ function demo()
 
 function demo_run()
 {
-  w = new Widget(null, new Rect(0, 0, 381, 216));
-  w.set_root();
-  w.set_canvas( $("#gui")[0] );
-  w.set_background_image( ic.get_image('background') );
+  w = new Widget(null, new Rect(0, 0, 381, 216))
+    .setRoot()
+    .setCanvas( $("#gui")[0] )
+    .setBackgroundImage( ic.get_image('background') );
 
   // front, display
-  f = new Widget(w, new Rect(34, 0, 308, 216));
-  f.set_background_image( ic.get_image('front') );
+  f = new Widget(w, new Rect(34, 0, 308, 216))
+    .setBackgroundImage( ic.get_image('front') );
 
-  d = new Widget(w, new Rect(53, 9, 271, 116));
-  d.set_background_image( ic.get_image('display') );
+  d = new Widget(w, new Rect(53, 9, 271, 116))
+    .setBackgroundImage( ic.get_image('display') );
 
   // eject
-  b_eject = new Button( w, new Rect(7, 181, 28, 28) );
-  b_eject.set_background_image( ic.get_image('eject') );
-  b_eject.set_overlay_image( ic.get_image('eject_down') );
+  b_eject = new Button( w, new Rect(7, 181, 28, 28) )
+    .setBackgroundImage( ic.get_image('eject') )
+    .setOverlayImage( ic.get_image('eject_down') );
+
+  w_crossfade = new Widget( w, new Rect(28, 35, 14, 14) )
+    .setBackgroundImage( ic.get_image('led') );
+
+  l_crossfade = new Widget( w, new Rect(60, 38, 39, 9) )
+    .setBackgroundImage( ic.get_image('crossfade_label') );
 
   // crossfade, shuffle and repeat
-  b_crossfade = new Button( w, new Rect(9, 30, 19, 19) );
-  b_crossfade.set_background_image( ic.get_image('crossfade') );
-  b_crossfade.set_overlay_image( ic.get_image('crossfade_down') );
+  b_crossfade = new Button( w, new Rect(9, 30, 19, 19) )
+    .setBackgroundImage( ic.get_image('crossfade') )
+    .setOverlayImage( ic.get_image('crossfade_down') )
+    .addListener('mouse_click', function() {
+      w_crossfade.toggleVisibility();
+      l_crossfade.toggleVisibility();
+    });
 
-  w_crossfade = new Widget( w, new Rect(28, 35, 14, 14) );
-  w_crossfade.set_background_image( ic.get_image('led') );
-  l_crossfade = new Widget( w, new Rect(60, 38, 39, 9) );
-  l_crossfade.set_background_image( ic.get_image('crossfade_label') );
+  w_shuffle = new Widget( w, new Rect(30, 58, 14, 14) )
+    .setBackgroundImage( ic.get_image('led') );
 
-  b_crossfade.add_event_listener('mouse_click', function() {
-    w_crossfade.toggle_visibility();
-    l_crossfade.toggle_visibility();
-  });
+  l_shuffle = new Widget( w, new Rect(62, 60, 31, 9) )
+    .setBackgroundImage( ic.get_image('shuffle_label') );
 
-  b_shuffle = new Button( w, new Rect(11, 55, 19, 19) );
-  b_shuffle.set_background_image( ic.get_image('shuffle') );
-  b_shuffle.set_overlay_image( ic.get_image('shuffle_down') );
+  b_shuffle = new Button( w, new Rect(11, 55, 19, 19) )
+    .setBackgroundImage( ic.get_image('shuffle') )
+    .setOverlayImage( ic.get_image('shuffle_down') )
+    .addListener('mouse_click', function() {
+      w_shuffle.toggleVisibility();
+      l_shuffle.toggleVisibility();
+    });
 
-  w_shuffle = new Widget( w, new Rect(30, 58, 14, 14) );
-  w_shuffle.set_background_image( ic.get_image('led') );
-  l_shuffle = new Widget( w, new Rect(62, 60, 31, 9) );
-  l_shuffle.set_background_image( ic.get_image('shuffle_label') );
+  w_repeat = new Widget( w, new Rect(34, 80, 14, 14) )
+    .setBackgroundImage( ic.get_image('led') );
 
-  b_shuffle.add_event_listener('mouse_click', function() {
-    w_shuffle.toggle_visibility();
-    l_shuffle.toggle_visibility();
-  });
+  l_repeat = new Widget( w, new Rect(66, 82, 27, 9) )
+    .setBackgroundImage( ic.get_image('repeat_label') );
 
-  b_repeat = new Button( w, new Rect(15, 80, 19, 19) );
-  b_repeat.set_background_image( ic.get_image('repeat') );
-  b_repeat.set_overlay_image( ic.get_image('repeat_down') );
-
-  w_repeat = new Widget( w, new Rect(34, 80, 14, 14) );
-  w_repeat.set_background_image( ic.get_image('led') );
-  l_repeat = new Widget( w, new Rect(66, 82, 27, 9) );
-  l_repeat.set_background_image( ic.get_image('repeat_label') );
-
-  b_repeat.add_event_listener('mouse_click', function() {
-    w_repeat.toggle_visibility();
-    l_repeat.toggle_visibility();
-  });
+  b_repeat = new Button( w, new Rect(15, 80, 19, 19) )
+    .setBackgroundImage( ic.get_image('repeat') )
+    .setOverlayImage( ic.get_image('repeat_down') )
+    .addListener('mouse_click', function() {
+      w_repeat.toggleVisibility();
+      l_repeat.toggleVisibility();
+    });
 
 
   // play, stop, pause, next, previous
 
-  b_play = new Button( w, new Rect(298, 110, 32, 33) );
-  b_play.set_background_image( ic.get_image('play') );
-  b_play.set_overlay_image( ic.get_image('play_down') );
+  b_play = new Button( w, new Rect(298, 110, 32, 33) )
+    .setBackgroundImage( ic.get_image('play') )
+    .setOverlayImage( ic.get_image('play_down') );
 
-  b_stop = new Button( w, new Rect(266, 110, 31, 33) );
-  b_stop.set_background_image( ic.get_image('stop') );
-  b_stop.set_overlay_image( ic.get_image('stop_down') );
+  b_stop = new Button( w, new Rect(266, 110, 31, 33) )
+    .setBackgroundImage( ic.get_image('stop') )
+    .setOverlayImage( ic.get_image('stop_down') );
 
-  b_previous = new Button( w, new Rect(266, 144, 31, 30) );
-  b_previous.set_background_image( ic.get_image('previous') );
-  b_previous.set_overlay_image( ic.get_image('previous_down') );
+  b_previous = new Button( w, new Rect(266, 144, 31, 30) )
+    .setBackgroundImage( ic.get_image('previous') )
+    .setOverlayImage( ic.get_image('previous_down') );
 
-  b_next = new Button( w, new Rect(298, 144, 32, 30) );
-  b_next.set_background_image( ic.get_image('next') );
-  b_next.set_overlay_image( ic.get_image('next_down') );
+  b_next = new Button( w, new Rect(298, 144, 32, 30) )
+    .setBackgroundImage( ic.get_image('next') )
+    .setOverlayImage( ic.get_image('next_down') );
 
-  b_pause = new Button( w, new Rect(288, 137, 20, 20) );
-  b_pause.set_background_image( ic.get_image('pause') );
-  b_pause.set_overlay_image( ic.get_image('pause_down') );
-
-  b_pause.add_event_listener('mouse_down', function() {
-    return true;
-  });
+  b_pause = new Button( w, new Rect(288, 137, 20, 20) )
+    .setBackgroundImage( ic.get_image('pause') )
+    .setOverlayImage( ic.get_image('pause_down') )
+    .addListener('mouse_down', function() {
+      return true;
+    });
 
   s_volume = new FramedSlider( w, new Rect(203, 157, 44, 44))
     .set_framed_image( ic.get_image('volume') )

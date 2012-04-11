@@ -35,35 +35,31 @@ var ListBox = Widget.extend({
     this.background_image_up = null;
     this.background_image_down = null;
 
-    // storage for the list text
-    this.list = Array();
-
-    // storage of the list data
-    this.data = Array();
+    // storage for the list objects
+    this._list = Array();
 
     // define the maximum number of items the list can hold
     // n = 0 : unlimited
     // n > 0 : fifo list of length n
-    this.max_items = 0;
-    this.list_offset = 0;
-    this.list_offset_max = 0;
+    this._max_items = 0;
+    this._list_offset = 0;
+    this._list_offset_max = 0;
 
     // index of the active item
-    this.item_index_active = -1;
+    this._item_index_active = -1;
 
     //
-    this.item_height = 20;
-    this.item_bounds = new Rect(this._bounds);
-    this.item_bounds.scale(-10);
+    this._item_height = 20;
+    this._item_bounds = new Rect(this._bounds).scale(-10);
 
-    this.set_active_font( this._font );
-    this.set_active_font_color( this._font_color );
-    this.set_active_color('#fff');
+    this.setActiveFont( this._font );
+    this.setActiveFontColor( this._font_color );
+    this.setActiveColor('#fff');
 
     // number of items visible in the list
-    this.item_visible_count = Math.floor(this.item_bounds.h / this.item_height) + 1;
+    this._item_visible_count = Math.ceil(this._item_bounds.h / this._item_height);
 
-    this.drag_origin = new Vector2(0, 0);
+    this._drag_origin = new Vector2(0, 0);
 
     this.slider = null;
 
@@ -73,55 +69,65 @@ var ListBox = Widget.extend({
   //
   // ITEMS
   //
-  set_max_items: function(nitems)
+  set_max_items: function(_items)
   {
-    if (nitems < 0) {
+    _items = parseInt(_items, 10)
+
+    if( _items > 0 )
+    {
+      this._max_items = _items;
+    }
+    else
+    {
       console.error('Maximum items for ListBox must be greater than or equal to zero');
     }
 
-    this.max_items = nitems;
-
-    return this.max_items;
+    return this;
   },
 
   /**
    * Add an item to the beginning of the list
    */
-  insert_item: function(item,data)
+  insert_item: function(_item, _data)
   {
-    item = item || '';
-    this.list.unshift(item);
-    this.data.unshift(data);
+    var _object = {
+      item: _item || '',
+      data: _data || '',
+    };
 
-    if ( (this.max_items > 0) &&
-        (this.list.length > this.max_items) ) {
-      this.list.pop();
-      this.data.pop();
+    this._list.unshift(_object);
+
+    if ( ( this._max_items > 0 ) &&
+         ( this._list.length > this._max_items ) ) {
+      this._list.pop();
     }
 
-    this.list_offset_max = Math.max(0, (this.item_height * this.list.length) - this.item_bounds.h);
-    this.set_dirty(true);
-    return this.list.length;
+    this._list_offset_max = Math.max(0, (this._item_height * this._list.length) - this._item_bounds.h);
+    this.setDirty(true);
+
+    return this._list.length;
   },
 
   /**
    * Add an item to the end of the list
    */
-  add_item: function(item,data)
+  add_item: function(_item, _data)
   {
-    item = item || '';
-    this.list.push(item);
-    this.data.push(data);
+    var _object = {
+      item: _item || '',
+      data: _data || '',
+    };
 
-    if ( (this.max_items > 0) &&
-        (this.list.length > this.max_items) ) {
-      this.list.shift();
-      this.data.shift();
+    this._list.push(_object);
+
+    if ( (this._max_items > 0) &&
+        (this._list.length > this._max_items) ) {
+      this._list.shift();
     }
 
-    this.list_offset_max = Math.max(0, (this.item_height * this.list.length) - this.item_bounds.h);
-    this.set_dirty(true);
-    return this.list.length;
+    this._list_offset_max = Math.max(0, (this._item_height * this._list.length) - this._item_bounds.h);
+    this.setDirty(true);
+    return this._list.length;
   },
 
   /**
@@ -129,7 +135,7 @@ var ListBox = Widget.extend({
    */
   add_new_item: function(item,data)
   {
-    if (this.list.length == 0 || this.list[this.list.length - 1] != item) {
+    if (this._list.length == 0 || this._list[this._list.length - 1] != item) {
       this.add_item(item,data);
     }
 
@@ -138,12 +144,11 @@ var ListBox = Widget.extend({
 
   clear_items: function()
   {
-    this.list = [];
-    this.data = [];
-    this.item_index_active = -1;
+    this._list = [];
+    this._item_index_active = -1;
 
-    this.set_dirty(true);
-    return this.list.length;
+    this.setDirty(true);
+    return this._list.length;
   },
 
   /**
@@ -152,13 +157,13 @@ var ListBox = Widget.extend({
   get_item_text: function(index)
   {
     if (index == null) return null;
-    if (index >= this.list.length || index < 0) return null
-    return this.list[index];
+    if (index >= this._list.length || index < 0) return null
+    return this._list[index];
   },
 
   get_active_item_text: function()
   {
-    return this.get_item_text(this.item_index_active);
+    return this.get_item_text(this._item_index_active);
   },
 
   get_item_data: function(index)
@@ -170,7 +175,7 @@ var ListBox = Widget.extend({
 
   get_active_item_data: function()
   {
-    return this.get_item_data(this.item_index_active);
+    return this.get_item_data(this._item_index_active);
   },
 
   /**
@@ -179,12 +184,12 @@ var ListBox = Widget.extend({
    */
   toggle_item_selection: function(index)
   {
-    if (index == this.item_index_active) {
-      this.item_index_active = -1;
-      this.set_dirty(true);
+    if (index == this._item_index_active) {
+      this._item_index_active = -1;
+      this.setDirty(true);
     }
 
-    return this.item_index_active;
+    return this._item_index_active;
   },
 
   /**
@@ -197,16 +202,16 @@ var ListBox = Widget.extend({
   {
     if (index == null) return null;
     if (index >= this.data.length || index < 0) return null;
-    if (this.item_index_active == index) {
-      this.item_index_active = -1;
+    if (this._item_index_active == index) {
+      this._item_index_active = -1;
     }
-    else if (this.item_index_active > index) {
-      this.item_index_active--;
+    else if (this._item_index_active > index) {
+      this._item_index_active--;
     }
 
-    this.list.splice(index,1);
+    this._list.splice(index,1);
     this.data.splice(index,1);
-    this.set_dirty(true);
+    this.setDirty(true);
 
     return this;
   },
@@ -216,7 +221,7 @@ var ListBox = Widget.extend({
    */
   clear_active_item: function()
   {
-    return this.clear_item(this.item_index_active);
+    return this.clear_item(this._item_index_active);
   },
 
 
@@ -229,11 +234,11 @@ var ListBox = Widget.extend({
     if( slider instanceof Slider )
     {
       this.slider = slider;
-      this.slider.set_visibility(false);
+      this.slider.setVisibility(false);
 
       // TODO: use setter/getters
       this.slider._bounds.x = this._bounds.w - this.slider._bounds.w;
-      this.slider._bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider._bounds.h) / this.list_offset_max);
+      this.slider._bounds.y = 10 + this._list_offset * ((this._item_bounds.h - this.slider._bounds.h) / this._list_offset_max);
     }
 
     return this;
@@ -251,14 +256,14 @@ var ListBox = Widget.extend({
       return;
     }
 
-    this.item_height = height;
-    this.item_visible_count = Math.floor(this.item_bounds.h / this.item_height) + 1;
-    this.list_offset_max = Math.max(0, (this.item_height * this.list.length) - this.item_bounds.h);
+    this._item_height = height;
+    this._item_visible_count = Math.floor(this._item_bounds.h / this._item_height) + 1;
+    this._list_offset_max = Math.max(0, (this._item_height * this._list.length) - this._item_bounds.h);
 
     return this;
   },
 
-  set_active_font: function(font)
+  setActiveFont: function(font)
   {
     // ensure a font object is built
     if( ! ( font instanceof Font ) )
@@ -269,7 +274,7 @@ var ListBox = Widget.extend({
     return this;
   },
 
-  set_active_font_color: function(color)
+  setActiveFontColor: function(color)
   {
     // ensure a color object is built
     if( ! ( color instanceof Color ) )
@@ -280,7 +285,7 @@ var ListBox = Widget.extend({
     return this;
   },
 
-  set_active_color: function(color)
+  setActiveColor: function(color)
   {
     // ensure a color object is built
     if( ! ( color instanceof Color ) )
@@ -307,7 +312,7 @@ var ListBox = Widget.extend({
     if( this.slider instanceof Widget )
     {
       this.slider
-        .set_visibility(true)
+        .setVisibility(true)
         .fadeIn(200);
     }
 
@@ -319,15 +324,15 @@ var ListBox = Widget.extend({
 
     this.drag_origin.set(x, y);
 
-    if( this.list_offset + y_delta >= 0 &&
-        this.list_offset + y_delta < this.list_offset_max )
+    if( this._list_offset + y_delta >= 0 &&
+        this._list_offset + y_delta < this._list_offset_max )
     {
-      this.list_offset += y_delta;
+      this._list_offset += y_delta;
 
       if( this.slider instanceof Widget )
-        this.slider._bounds.y = 10 + this.list_offset * ((this.item_bounds.h - this.slider._bounds.h) / this.list_offset_max);
+        this.slider._bounds.y = 10 + this._list_offset * ((this._item_bounds.h - this.slider._bounds.h) / this._list_offset_max);
 
-      this.set_dirty(true);
+      this.setDirty(true);
     }
 
     return this;
@@ -344,15 +349,16 @@ var ListBox = Widget.extend({
 
   _mouse_click: function(x, y)
   {
-    var index = Math.floor((this.list_offset + (y - this.item_bounds.y)) / this.item_height);
+    var index = Math.floor((this._list_offset + (y - this._item_bounds.y)) / this._item_height);
 
-    if( index < this.list.length )
+    if( index < this._list.length )
     {
-      this.item_index_active = index;
+      this._item_index_active = index;
     }
 
     return this;
   },
+
   //
   // RENDERING
   //
@@ -373,52 +379,52 @@ var ListBox = Widget.extend({
     }
 
     context.textBaseline = 'middle';
-    context.font = this._font.get_font();
+    context.font = this._font.getFont();
 
     if( this.font_color instanceof Color )
-      context.fillStyle = this.font_color.get_rgba(this.alpha);
+      context.fillStyle = this.font_color.getRGBA(this.alpha);
 
-    var item_stride = Math.min(this.item_visible_count + 1, this.list.length);
-    var item_y = this.item_bounds.y - (this.list_offset % this.item_height ) + (this.item_height / 2);
+    var item_stride = Math.min(this.item_visible_count + 1, this._list.length);
+    var item_y = this._item_bounds.y - (this._list_offset % this._item_height ) + (this._item_height / 2);
 
-    var item_index_start = Math.floor(this.list_offset / this.item_height);
+    var item_index_start = Math.floor(this._list_offset / this._item_height);
 
     context.save();
 
     context.beginPath();
-    context.rect(this.item_bounds.x, this.item_bounds.y, this.item_bounds.w, this.item_bounds.h);
+    context.rect(this._item_bounds.x, this._item_bounds.y, this._item_bounds.w, this._item_bounds.h);
     context.clip();
     context.closePath();
 
     for( var i=0; i<item_stride; i++ )
     {
       var index = i + item_index_start;
-      var item = this.list[index];
+      var item = this._list[index];
 
-      if( index == this.item_index_active )
+      if( index == this._item_index_active )
       {
         context.save();
 
         // set active background decals and draw
         if( this.active_color instanceof Color )
-          context.fillStyle = this.active_color.get_rgba(this.alpha);
+          context.fillStyle = this.active_color.getRGBA(this.alpha);
 
-        context.fillRect(this.item_bounds.x, item_y-(this.item_height / 2), this.item_bounds.w, this.item_height);
+        context.fillRect(this._item_bounds.x, item_y-(this._item_height / 2), this._item_bounds.w, this._item_height);
 
         // set active font decals and draw
-        context.font = this.active_font.get_font();
+        context.font = this.active_font.getFont();
 
         if( this.active_font_color instanceof Color )
-          context.fillStyle = this.active_font_color.get_rgba(this.alpha);
+          context.fillStyle = this.active_font_color.getRGBA(this.alpha);
 
-        context.fillText(item, this.item_bounds.x, item_y);
+        context.fillText(item, this._item_bounds.x, item_y);
 
         context.restore();
       }
       else
-        context.fillText(item, this.item_bounds.x, item_y);
+        context.fillText(item, this._item_bounds.x, item_y);
 
-      item_y += this.item_height;
+      item_y += this._item_height;
     }
 
     context.restore();

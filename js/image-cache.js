@@ -21,9 +21,15 @@
 
 var ImageCache = Base.extend({
 
+  //
+  // MEMBERS
+  //
+
+  _cache: {},
+
   constructor: function()
   {
-    this.cache = {};
+    this._cache = {};
     this.count_total = 0;
     this.count_loaded = 0;
 
@@ -39,7 +45,7 @@ var ImageCache = Base.extend({
 
   add_image: function(k, p, f)
   {
-    if( k in this.cache )
+    if( k in this._cache )
     {
       console.error('Key ' + k + ' is already in use!');
       return null;
@@ -51,9 +57,9 @@ var ImageCache = Base.extend({
       return null;
     }
 
-    this.cache[k] = {
+    this._cache[k] = {
       source: p,
-      image: new Image(),
+      image:  new Image(),
       loaded: false
     }
 
@@ -63,27 +69,27 @@ var ImageCache = Base.extend({
     {
       var self = this;
 
-      this.cache[k]['image'].src = p;
-      this.cache[k]['image'].onload = function(key) {
+      this._cache[k].image.src = p;
+      this._cache[k].image.onload = function(key) {
         return function() {
           self._image_loaded(key);
         }
       }(k)
     }
 
-    return this.cache[k]['image'];
+    return this._cache[k].image;
   },
 
 
   get_image: function(k)
   {
-    if( ! ( k in this.cache ) )
+    if( ! ( k in this._cache ) )
     {
       console.warn('Key ' + k + ' is not available.');
       return;
     }
 
-    return this.cache[k]['image'];
+    return this._cache[k]['image'];
   },
 
 
@@ -102,20 +108,20 @@ var ImageCache = Base.extend({
       this.cb_on_error = cb_on_error;
 
     // build up all image objects and populate
-    for( k in this.cache )
+    for( k in this._cache )
     {
-      if( this.cache[k]['image'].src !== this.cache[k]['source'] )
+      if( this._cache[k].image.src !== this._cache[k].source )
       {
         var self = this;
 
-        this.cache[k]['image'].src = this.cache[k]['source'];
-        this.cache[k]['image'].onload = function(key) {
+        this._cache[k]['image'].src = this._cache[k].source;
+        this._cache[k]['image'].onload = function(key) {
           return function() {
             self._image_loaded(key);
           }
         }(k);
 
-        this.cache[k]['image'].onerror = function(key) {
+        this._cache[k]['image'].onerror = function(key) {
           return function() {
             self._image_error(key);
           }
@@ -130,19 +136,19 @@ var ImageCache = Base.extend({
 
   _image_loaded: function(k)
   {
-    if( ! ( k in this.cache ) )
+    if( ! ( k in this._cache ) )
     {
       console.error('Key ' + k + ' is no longer available.');
       return;
     }
 
-    this.cache[k]['loaded'] = true;
+    this._cache[k]['loaded'] = true;
 
     this.count_loaded++;
 
     // fire the on_load callback with total progress passed
     // pass arguments: current progress, key, image source
-    this.cb_on_load(100 * this.count_loaded / this.count_total, k, this.cache[k]['image'].src);
+    this.cb_on_load(100 * this.count_loaded / this.count_total, k, this._cache[k]['image'].src);
 
     // fire the on_loaded callback when all images are loaded
     // pass arguments: total images loaded
@@ -153,7 +159,7 @@ var ImageCache = Base.extend({
 
   _image_error: function(k)
   {
-    if( ! ( k in this.cache ) )
+    if( ! ( k in this._cache ) )
     {
       console.error('Key ' + k + ' is no longer available.');
       return;

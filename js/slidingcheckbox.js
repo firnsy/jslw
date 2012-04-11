@@ -53,7 +53,7 @@ var SlidingCheckBox = Widget.extend({
   add_slider: function(slider)
   {
     this.slider = slider;
-    this.slider.set_visibility(true);
+    this.slider.setVisibility(true);
 
     // TODO: use setter/getters
     if( this.checked )
@@ -92,7 +92,7 @@ var SlidingCheckBox = Widget.extend({
       if( i.complete && i.width > 0 )
       {
         this._overlay_calculate_offset();
-        this.set_dirty(true);
+        this.setDirty(true);
       }
     }
     else
@@ -105,7 +105,7 @@ var SlidingCheckBox = Widget.extend({
       var self = this;
       this.overlay_image.onload = function() {
         self._overlay_calculate_offset();
-        self.set_dirty(true);
+        self.setDirty(true);
       };
     }
   },
@@ -184,7 +184,7 @@ var SlidingCheckBox = Widget.extend({
       else
         this.slider._bounds.x += x_delta;
 
-      this.set_dirty(true);
+      this.setDirty(true);
     }
   },
 

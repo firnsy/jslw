@@ -296,18 +296,3 @@ Number.prototype.toColorPart = function()
   return ((this < 16 ? '0' : '') + this.toString(16));
 };
 
-/*
- * Clamp a number to the specified range
-*/
-Number.prototype.clamp = function(_low, _high)
-{
-  "use strict";
-  
-  if ( (typeof _low === 'number') && this < _low ) {
-    return _low;
-  else if ( (typeof _high === 'number') && this > _high ) {
-    return _high;
-  else
-    return this;
-};
-

@@ -35,7 +35,7 @@ var Slider = Widget.extend({
     this.drag_delta = new Vector2(0,0);
     this.is_drag = false;
 
-    var dirtify = function(slider) { slider.set_dirty(true); };
+    var dirtify = function(slider) { slider.setDirty(true); };
 
     this
       .add_event_listener('mouse_down', dirtify)
@@ -66,7 +66,7 @@ var Slider = Widget.extend({
     // only update on change
     if( this.level != l ) {
       this.level = l;
-      this.set_dirty(true);
+      this.setDirty(true);
     }
 
     return this;
@@ -98,14 +98,14 @@ var Slider = Widget.extend({
           slider.background_image = slider.background_image_down;
           slider.drag_start.set(x,y);
           slider.is_drag = true;
-          slider.set_dirty(true);
+          slider.setDirty(true);
           cb(slider, x, y);
         };
         break;
       case 'mouse_drag_end':
         this.event_cb[a] = function(slider, x, y) {
           slider.background_image = slider.background_image_up;
-          slider.set_dirty(true);
+          slider.setDirty(true);
           slider.is_drag = false;
           cb(slider, x, y);
         };
@@ -123,7 +123,7 @@ var Slider = Widget.extend({
           else if (slider.level > 100)
             slider.level = 100;
 
-          slider.set_dirty(true);
+          slider.setDirty(true);
           console.log('slider% ' + slider.level);
 
           // new start point
@@ -142,7 +142,7 @@ var Slider = Widget.extend({
   /**
    * Sets the default state image
    */
-  set_background_image_up: function(path)
+  setBackgroundImage_up: function(path)
   {
     this.background_image_up = new Image();
 
@@ -150,7 +150,7 @@ var Slider = Widget.extend({
     this.background_image_up.onerror = function(){ alert("Unable to load image: " + this.src); };
 
     var self = this;
-    this.background_image_up.onload = function() { self.set_dirty(true); };
+    this.background_image_up.onload = function() { self.setDirty(true); };
 
     // default image is up
     this.background_image = this.background_image_up;
@@ -161,7 +161,7 @@ var Slider = Widget.extend({
   /**
    * Sets the on pressed image
    */
-  set_background_image_down: function(path)
+  setBackgroundImage_down: function(path)
   {
     this.background_image_down = new Image();
 
@@ -169,7 +169,7 @@ var Slider = Widget.extend({
     this.background_image_down.onerror = function(){ alert("Unable to load image: " + this.src); };
 
     var self = this;
-    this.background_image_down.onload = function() { self.set_dirty(true); };
+    this.background_image_down.onload = function() { self.setDirty(true); };
 
     return this;
   },
@@ -185,7 +185,7 @@ var Slider = Widget.extend({
     this.level_image.onerror = function(){ alert("Unable to load image: " + this.src); };
 
     var self = this;
-    this.level_image.onload = function() { self.set_dirty(true); };
+    this.level_image.onload = function() { self.setDirty(true); };
 
     return this;
   },

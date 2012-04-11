@@ -28,10 +28,12 @@ var Clock = Widget.extend({
     this.seconds = false;
     this.utc = true;
 
-    this._timer_id = null;
+    // queue the first update
+    var self = this;
+    this._timer_id = setTimeout( function() { self._update(); }, 1000 );
   },
 
-  update_time: function()
+  _update: function()
   {
     var d = new Date();
 
@@ -39,11 +41,11 @@ var Clock = Widget.extend({
     var m = '00' + ( ( this.utc ) ? d.getUTCMinutes() : d.getMinutes() );
     var s = '00' + ( ( this.utc ) ? d.getUTCSeconds() : d.getSeconds() );
 
-    this.set_caption(h.slice(-2) + ':' + m.slice(-2));
-    this.set_dirty(true);
+    this.setCaption(h.slice(-2) + ':' + m.slice(-2));
+    this.setDirty(true);
 
     var i = (60 - ( s % 60 )) * 1000;
     var self = this;
-    this._timer_id = setTimeout( function() { self.update_time(); }, i );
+    this._timer_id = setTimeout( function() { self._update(); }, i );
   },
 });

@@ -109,7 +109,7 @@ var TabMap = Widget.extend({
       this.tabs[t]['image_active'] = i;
 
       if( i.src !== '' && i.complete )
-        this.set_dirty(true);
+        this.setDirty(true);
     }
     else
     {
@@ -119,7 +119,7 @@ var TabMap = Widget.extend({
       this.tabs[t]['image_active'].onerror = function(){ console.error('Unable to load image: ' + this.src); };
 
       var self = this;
-      this.tabs[t]['image_active'].onload = function() { self.set_dirty(true); };
+      this.tabs[t]['image_active'].onload = function() { self.setDirty(true); };
     }
 
     return this;
@@ -138,7 +138,7 @@ var TabMap = Widget.extend({
       this.tabs[t]['image_overlay'] = i;
 
       if( i.src !== '' && i.complete )
-        this.set_dirty(true);
+        this.setDirty(true);
     }
     else
     {
@@ -148,7 +148,7 @@ var TabMap = Widget.extend({
       this.tabs[t]['image_overlay'].onerror = function(){ console.error('Unable to load image: ' + this.src); };
 
       var self = this;
-      this.tabs[t]['image_overlay'].onload = function() { self.set_dirty(true); };
+      this.tabs[t]['image_overlay'].onload = function() { self.setDirty(true); };
     }
 
     return this;
@@ -173,7 +173,7 @@ var TabMap = Widget.extend({
           tab._bounds.intersects(x, y) )
       {
         this.pressed_tab = t;
-        this.set_dirty(true);
+        this.setDirty(true);
         return true;
       }
     }
@@ -204,7 +204,7 @@ var TabMap = Widget.extend({
 
         this.active_tab = t;
         this.pressed_tab = '';
-        this.set_dirty(true);
+        this.setDirty(true);
 
         return true;
       }
@@ -256,10 +256,10 @@ var TabMap = Widget.extend({
           break;
       }
 
-      context.font = this._font.get_font();
+      context.font = this._font.getFont();
 
       if( this.font_color instanceof Color )
-        context.fillStyle = this.font_color.get_rgba(this.alpha);
+        context.fillStyle = this.font_color.getRGBA(this.alpha);
 
       context.fillText(tab, lx, ly);
     }
@@ -271,14 +271,14 @@ var TabMap = Widget.extend({
 
     if( this.background_color instanceof Color )
     {
-      context.fillStyle = this.background_color.get_rgba(this.alpha);
+      context.fillStyle = this.background_color.getRGBA(this.alpha);
       context.fillRect(this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
 
     // draw the background image
     if( this.active_tab !== '' &&
         this.tabs[this.active_tab]['image_active'] instanceof Image &&
-        this.tabs[this.active_tab]['image_active'].width > 0 )
+        this.tabs[this.active_tab]['image_active'].naturalWidth > 0 )
     {
       context.drawImage(this.tabs[this.active_tab]['image_active'], this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }
@@ -287,7 +287,7 @@ var TabMap = Widget.extend({
     if( this.is_pressed &&
         this.pressed_tab !== '' &&
         this.tabs[this.pressed_tab]['image_overlay'] instanceof Image &&
-        this.tabs[this.pressed_tab]['image_overlay'].width > 0 )
+        this.tabs[this.pressed_tab]['image_overlay'].naturalWidth > 0 )
     {
       context.drawImage(this.tabs[this.pressed_tab]['image_overlay'], this._bounds.x, this._bounds.y, this._bounds.w, this._bounds.h);
     }

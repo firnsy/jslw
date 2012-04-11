@@ -29,7 +29,8 @@ var ANIMATE_FRAME_TIME_SPACING = 40;    // time between animation frames in mill
 // ARRAY UTILTIES
 //
 
-if (typeof Array.prototype.remove !== 'function') {
+if( typeof Array.prototype.remove !== 'function' )
+{
   Array.prototype.remove = function()
   {
     "use strict";
@@ -58,7 +59,7 @@ if (typeof Array.prototype.remove !== 'function') {
 //
 // Affects: IE 8 and below
 //
-if (typeof Array.prototype.indexOf !== 'function')
+if( typeof Array.prototype.indexOf !== 'function' )
 {
   Array.prototype.indexOf = function(n, i)
   {
@@ -85,7 +86,7 @@ if (typeof Array.prototype.indexOf !== 'function')
 //
 // Affects: IE 8 and below
 //
-if (typeof Array.prototype.filter !== 'function')
+if( typeof Array.prototype.filter !== 'function' )
 {
   Array.prototype.filter = function(func /*, thisp */)
   {
@@ -121,12 +122,88 @@ if (typeof Array.prototype.filter !== 'function')
   };
 };
 
+//
+// NUMBER UTILITIES
+//
+
+/*
+ * Clamp a number to the specified range
+*/
+if( typeof Number.prototype.clamp !== 'function' )
+{
+  Number.prototype.clamp = function(_low, _high)
+  {
+    "use strict";
+
+    if ( (typeof _low === 'number') && this < _low )
+    {
+      return _low;
+    }
+    else if ( (typeof _high === 'number') && this > _high )
+    {
+      return _high;
+    }
+    else
+    {
+      return this;
+    }
+  };
+};
+
+
+//
+// OBJECT UTILTIES
+//
+
+/*
+if( typeof Object.prototype.watch !== 'function' ) {
+  Object.prototype.watch = function (prop, handler) {
+    var oldval = this[prop], newval = oldval,
+    getter = function () {
+      return newval;
+    },
+    setter = function (val) {
+      oldval = newval;
+      return newval = handler.call(this, prop, oldval, val);
+    };
+    if( delete this[prop])
+    { // can't watch constants
+      if( Object.defineProperty ) // ECMAScript 5
+      {
+        Object.defineProperty(this, prop, {
+          get: getter,
+          set: setter,
+          enumerable: false,
+          configurable: true
+        });
+      }
+      else if( Object.prototype.__defineGetter__ &&
+               Object.prototype.__defineSetter__ )
+      { // legacy
+        Object.prototype.__defineGetter__.call(this, prop, getter);
+        Object.prototype.__defineSetter__.call(this, prop, setter);
+      }
+    }
+  };
+};
+
+
+if( typeof Object.prototype.unwatch !== 'function' )
+{
+  Object.prototype.unwatch = function (prop)
+  {
+    var val = this[prop];
+    delete this[prop]; // remove accessors
+    this[prop] = val;
+  };
+}
+*/
 
 //
 // STRING UTILTIES
 //
 
-if (typeof String.prototype.startsWith !== 'function') {
+if( typeof String.prototype.startsWith !== 'function' ) {
   String.prototype.startsWith = function (str)
   {
     return this.slice(0, str.length) == str;
